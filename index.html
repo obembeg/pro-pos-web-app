@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pro POS – Smart Business Manager</title>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon.png">
+
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg-main: #f8fafc;
+            --bg-panel: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --receipt-width: 80mm;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-main);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Layout Structure */
+        .sidebar {
+            flex: 1;
+            max-width: 450px;
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+                overflow: auto;
+                height: auto;
+            }
+
+            .sidebar {
+                max-width: 100%;
+                border-right: none;
+                height: auto;
+            }
+
+            .main-view {
+                padding-bottom: 100px;
+                height: auto;
+            }
+        }
+
+        .main-view {
+            flex: 1.5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            overflow-y: auto;
+            background: radial-gradient(circle at top right, #eef2ff, transparent);
+        }
+
+        /* Sidebar Content */
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(to bottom right, #4f46e5, #6366f1);
+            color: white;
+        }
+
+        .sidebar-header h1 {
+            font-size: 16px;
+            margin: 0;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .user-chip {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 6px 12px;
+            border-radius: 99px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .user-chip:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #10b981;
+        }
+
+        .sidebar-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Form Styles */
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: var(--text-main);
+        }
+
+        input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 13px;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        /* Item Table in Sidebar */
+        .items-list {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .item-row {
+            display: grid;
+            grid-template-columns: 1fr 50px 70px 30px;
+            gap: 6px;
+            padding: 8px;
+            background: white;
+            border-bottom: 1px solid var(--border);
+            align-items: center;
+        }
+
+        .item-row:last-child {
+            border-bottom: none;
+        }
+
+        .item-row input {
+            padding: 6px 8px;
+            font-size: 12px;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .btn-icon:hover {
+            color: #ef4444;
+            background: #fee2e2;
+        }
+
+        /* Receipt Preview Card */
+        .receipt-container {
+            position: relative;
+            filter: drop-shadow(0 20px 25px rgba(0, 0, 0, 0.1));
+            transition: transform 0.3s ease;
+        }
+
+        .receipt-container:hover {
+            transform: translateY(-5px);
+        }
+
+        .receipt {
+            width: var(--receipt-width);
+            background: #fff;
+            padding: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: #000;
+            min-height: 400px;
+            position: relative;
+        }
+
+        /* Paper texture effect */
+        .receipt::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, rgba(0, 0, 0, 0.02) 0%, transparent 5%, transparent 95%, rgba(0, 0, 0, 0.02) 100%);
+            pointer-events: none;
+        }
+
+        .receipt h2 {
+            font-size: 16px;
+            text-align: center;
+            margin: 10px 0 5px;
+            text-transform: uppercase;
+        }
+
+        .receipt .center {
+            text-align: center;
+            margin-bottom: 2px;
+            font-size: 10px;
+        }
+
+        .receipt .divider {
+            border-top: 1px dashed #ccc;
+            margin: 10px 0;
+        }
+
+        .receipt-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+
+        .receipt-table th {
+            text-align: left;
+            border-bottom: 1px solid #000;
+            padding: 4px 0;
+        }
+
+        .receipt-table td {
+            padding: 4px 0;
+            vertical-align: top;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .receipt-totals {
+            margin-top: 10px;
+        }
+
+        .receipt-totals div {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2px;
+        }
+
+        /* Dashboard Controls */
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        button.primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        button.primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        button.secondary {
+            background: white;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        button.secondary:hover {
+            background: var(--bg-main);
+            border-color: var(--text-muted);
+        }
+
+        /* Dashboard UI */
+        .summary-card {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: white;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .summary-card .label {
+            font-size: 10px;
+            text-transform: uppercase;
+            font-weight: 700;
+            opacity: 0.8;
+            letter-spacing: 0.5px;
+        }
+
+        .summary-card .value {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .quick-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .tag-btn {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 99px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .tag-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: #f5f3ff;
+            transform: translateY(-1px);
+        }
+
+        /* History Cards */
+        .history-section {
+            padding: 12px 16px;
+            background: #f1f5f9;
+            border-top: 1px solid var(--border);
+            max-height: 350px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #historyList {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 8px;
+            overflow-y: auto;
+        }
+
+        .history-card {
+            background: white;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-card:hover {
+            border-color: var(--primary);
+            transform: translateX(4px);
+        }
+
+        .history-card .meta {
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-right: 10px;
+        }
+
+        .history-card .total {
+            font-weight: 700;
+            color: var(--primary);
+            white-space: nowrap;
+        }
+
+        .badge {
+            background: #e0e7ff;
+            color: #4338ca;
+            padding: 2px 8px;
+            border-radius: 99px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .badge.status-received {
+            background: #e0e7ff;
+            color: #4338ca;
+        }
+
+        .badge.status-processing {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge.status-ready {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge.status-collected {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        /* Floating Analytics Box */
+        .analytics-box {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 16px;
+            border-radius: 16px;
+            color: white;
+            display: flex;
+            gap: 20px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .stat-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #94a3b8;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .stat-trend {
+            font-size: 10px;
+            color: #10b981;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        /* Setup Overlay */
+        .setup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(12px);
+            z-index: 2000;
+            display: none;
+            /* Controlled by JS */
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .setup-card {
+            background: white;
+            padding: 32px;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .setup-card h2 {
+            margin-top: 0;
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .setup-card p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .setup-card .input-group label {
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .setup-card input,
+        .setup-card textarea {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+        }
+
+        .setup-card textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 13px;
+            min-height: 60px;
+            resize: none;
+            margin-bottom: 12px;
+        }
+
+        .settings-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 50%;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .settings-btn:hover {
+            background: #f1f5f9;
+            color: var(--primary);
+            transform: rotate(45deg);
+        }
+
+        /* Login Overlay */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+            z-index: 3000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: white;
+        }
+
+        .login-card {
+            text-align: center;
+            max-width: 300px;
+            width: 100%;
+        }
+
+        .pin-display {
+            font-size: 32px;
+            letter-spacing: 12px;
+            margin-bottom: 24px;
+            font-weight: 700;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+        }
+
+        .pin-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .pin-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pin-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .pin-btn.delete {
+            color: #ef4444;
+        }
+
+        /* Staff Switcher Style */
+        .staff-bar {
+            padding: 12px 16px;
+            background: #f8fafc;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+
+        .staff-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .staff-badge {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+        }
+
+        .staff-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            margin-bottom: 6px;
+        }
+
+        .staff-list-item span {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .staff-select {
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            font-size: 11px;
+            background: white;
+            cursor: pointer;
+        }
+
+        /* Chart Section */
+        .chart-container {
+            background: white;
+            padding: 24px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            margin-top: 24px;
+            width: 100%;
+            max-width: 800px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .chart-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        /* Print Styles */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            #receipt,
+            #receipt * {
+                visibility: visible;
+            }
+
+            #receipt {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 80mm;
+                box-shadow: none;
+                filter: none;
+            }
+
+            .sidebar,
+            .main-view,
+            .controls,
+            button {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h1 id="sidebar-biz-name"><i data-lucide="sparkles"></i> Pro POS</h1>
+                <button class="settings-btn" onclick="showSetup()" title="Settings" style="color: white; opacity: 0.8;">
+                    <i data-lucide="settings" style="width: 18px;"></i>
+                </button>
+            </div>
+
+            <div class="user-chip" onclick="triggerSwitch()" title="Lock / Switch Account">
+                <div class="status-dot"></div>
+                <span id="currentStaffName">Admin</span>
+                <i data-lucide="lock" style="width: 12px; margin-left: auto; opacity: 0.6;"></i>
+            </div>
+        </div>
+
+        <div class="sidebar-scroll">
+            <div class="summary-card">
+                <div class="label">Today's Total Revenue</div>
+                <div class="value" id="dailyTotal">₦0.00</div>
+            </div>
+
+            <div class="section-title"><i data-lucide="user"></i> Customer Info</div>
+
+            <div class="input-group">
+                <label>Customer Name</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input id="customer" placeholder="John Doe" list="customers" oninput="updateLoyalty()">
+                    <span id="loyalty-badge" class="badge" style="display: none;">0 visits</span>
+                </div>
+                <datalist id="customers"></datalist>
+            </div>
+
+            <div class="input-group">
+                <label>Phone Number</label>
+                <input id="phone" placeholder="080...">
+            </div>
+
+            <div class="input-group">
+                <label>Date & Time</label>
+                <input id="date" type="text" readonly>
+            </div>
+
+            <div class="input-group">
+                <label>Order Status</label>
+                <select id="orderStatus" class="staff-select"
+                    style="width:100%; border:1px solid var(--border); padding:8px; border-radius:6px; font-weight:600;">
+                    <option value="Received">🔵 Received</option>
+                    <option value="Processing">🟡 Processing</option>
+                    <option value="Ready">🟢 Ready for Pickup</option>
+                    <option value="Collected">🟣 Collected</option>
+                </select>
+            </div>
+
+            <div class="section-title">
+                <i data-lucide="package"></i> Order Items
+                <button onclick="addItem()" class="btn-icon"
+                    style="margin-left: auto; color: var(--primary); background: #eef2ff;">
+                    <i data-lucide="plus-circle" style="width: 18px;"></i>
+                </button>
+            </div>
+
+            <div class="quick-tags" id="quickTags">
+                <!-- JS will populate tags -->
+            </div>
+
+            <div id="sidebarItems" class="items-list">
+                <!-- JS will populate rows here -->
+            </div>
+
+            <div class="controls">
+                <button class="primary" onclick="saveReceipt(event)" title="Save to History">
+                    <i data-lucide="save"></i> Save
+                </button>
+                <button class="primary" style="background: #25d366;" onclick="shareWhatsApp()" title="Send to WhatsApp">
+                    <i data-lucide="message-circle"></i> WhatsApp
+                </button>
+                <button class="secondary" onclick="window.print()" title="Print Receipt">
+                    <i data-lucide="printer"></i> Print
+                </button>
+                <button class="secondary" onclick="resetForm()" title="New Receipt">
+                    <i data-lucide="rotate-ccw"></i> New
+                </button>
+            </div>
+        </div>
+
+        <div class="history-section">
+            <div class="section-title"
+                style="margin-top: 0; display: flex; justify-content: space-between; align-items: center;">
+                <span><i data-lucide="history"></i> Recent Sales</span>
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="exportHistory()"
+                        style="background:none; border:none; color:var(--text-muted); font-size:10px; cursor:pointer;"
+                        title="Export to CSV">
+                        <i data-lucide="download" style="width:12px"></i> CSV
+                    </button>
+                    <button onclick="toggleAllHistory()" id="historyToggleBtn"
+                        style="background:none; border:none; color:var(--primary); font-size:10px; cursor:pointer; font-weight:700;">SHOW
+                        ALL</button>
+                </div>
+            </div>
+            <div style="display: flex; gap: 4px; margin-bottom: 8px;">
+                <input id="historySearch" placeholder="Filter by name..." oninput="renderHistory()"
+                    style="flex: 1; background: white; font-size: 12px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px;">
+                <select id="historyStatusFilter" onchange="renderHistory()"
+                    style="font-size: 11px; border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; background: white; font-weight: 600; cursor: pointer;">
+                    <option value="All">All Status</option>
+                    <option value="Received">🔵 Received</option>
+                    <option value="Processing">🟡 Processing</option>
+                    <option value="Ready">🟢 Ready</option>
+                    <option value="Collected">🟣 Collected</option>
+                </select>
+            </div>
+            <div id="historyList"></div>
+        </div>
+
+    </aside>
+
+    <main class="main-view">
+        <div class="receipt-container">
+            <div class="receipt" id="receipt">
+                <div class="center" id="p-biz-name" style="font-weight: 700; font-size: 14px;">BUSINESS NAME</div>
+                <div class="center" id="p-biz-address">Business Address Line</div>
+                <div class="center" id="p-biz-phone">Phone Numbers</div>
+                <div class="divider"></div>
+                <h2>INVOICE</h2>
+                <div class="divider"></div>
+
+                <div style="margin-bottom: 5px;"><strong>Customer:</strong> <span id="p-customer">---</span></div>
+                <div style="margin-bottom: 5px;"><strong>Phone:</strong> <span id="p-phone">---</span></div>
+                <div style="margin-bottom: 5px;"><strong>Date:</strong> <span id="p-date">---</span></div>
+
+                <div class="divider"></div>
+
+                <table class="receipt-table">
+                    <thead>
+                        <tr>
+                            <th width="10%">#</th>
+                            <th width="45%">Item</th>
+                            <th width="15%" class="text-center">Qty</th>
+                            <th width="30%" class="text-right">Total ₦</th>
+                        </tr>
+                    </thead>
+                    <tbody id="p-itemsBody"></tbody>
+                </table>
+
+                <div class="divider"></div>
+
+                <div class="receipt-totals">
+                    <div><span>Subtotal:</span> <span id="p-subtotal">₦0.00</span></div>
+                    <div
+                        style="font-weight: 700; font-size: 14px; border-top: 1px solid #000; padding-top: 4px; margin-top: 4px;">
+                        <span>TOTAL:</span> <span id="p-total">₦0.00</span>
+                    </div>
+                    <div style="font-style: italic; font-size: 10px; margin-top: 10px;">
+                        Amount Due: <span id="p-due">₦0.00</span>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+                <div style="font-size: 10px; margin-top: 4px; color: #555;">
+                    Operator: <span id="p-staff">Admin</span>
+                </div>
+                <div class="center" style="font-size: 9px; margin-top: 10px;">
+                    Thanks for choosing <span id="p-footer-biz">our business</span>!
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-header">
+                <h3><i data-lucide="bar-chart-3"
+                        style="width:18px; vertical-align:middle; margin-right:8px; color:var(--primary)"></i> Revenue
+                    Trends (Last 7 Days)</h3>
+            </div>
+            <canvas id="revenueChart" height="150"></canvas>
+        </div>
+    </main>
+
+    <!-- Sales Dashboard -->
+    <div class="analytics-box" id="analyticsBox">
+        <div class="stat-item">
+            <div class="stat-label">Today</div>
+            <div class="stat-value" id="statDaily">₦0.00</div>
+        </div>
+        <div style="width: 1px; background: rgba(255,255,255,0.1);"></div>
+        <div class="stat-item">
+            <div class="stat-label">This Month</div>
+            <div class="stat-value" id="statMonthly">₦0.00</div>
+        </div>
+        <div style="width: 1px; background: rgba(255,255,255,0.1);"></div>
+        <div class="stat-item">
+            <div class="stat-label">This Year</div>
+            <div class="stat-value" id="statYearly">₦0.00</div>
+        </div>
+        <button onclick="document.getElementById('analyticsBox').style.display='none'" class="btn-icon"
+            style="color:#94a3b8; margin-left:10px;">
+            <i data-lucide="x-circle" style="width:16px;"></i>
+        </button>
+    </div>
+
+    <!-- Business Setup Overlay -->
+    <div id="setupOverlay" class="setup-overlay">
+        <div class="setup-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+                <div>
+                    <h2><i data-lucide="store" style="color: var(--primary);"></i> Setup & Data</h2>
+                    <p>Configure your business and manage your data backups.</p>
+                </div>
+                <button id="closeSetup" onclick="hideSetup()" class="btn-icon" style="display: none;">
+                    <i data-lucide="x" style="width: 20px;"></i>
+                </button>
+            </div>
+
+            <div style="max-height: 400px; overflow-y: auto; padding-right: 5px;">
+                <div class="input-group">
+                    <label>Business Name</label>
+                    <input id="setup-name" placeholder="E.g. Klassy Klean Garment Care">
+                </div>
+
+                <div class="input-group">
+                    <label>Business Address</label>
+                    <textarea id="setup-address" placeholder="Full address of your shop..."></textarea>
+                </div>
+
+                <div class="input-group">
+                    <label>Contact Phone(s)</label>
+                    <input id="setup-phone" placeholder="E.g. 08051353581, 08105781658">
+                </div>
+
+                <div class="input-group">
+                    <label>Admin Passcode (4-digit)</label>
+                    <input id="setup-admin-pin" type="password" maxlength="4" placeholder="Default: 0000">
+                </div>
+
+                <div class="section-title"><i data-lucide="users"></i> Staff Management</div>
+                <div style="margin-bottom: 12px;">
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
+                        <input id="newStaffName" placeholder="Staff Name">
+                        <div style="display: flex; gap: 8px;">
+                            <input id="newStaffPin" type="password" maxlength="4" placeholder="4-digit PIN"
+                                style="flex:1">
+                            <button class="primary" onclick="addStaffMember()" style="padding: 0 16px;">Add
+                                Staff</button>
+                        </div>
+                    </div>
+                    <div id="staffManageList">
+                        <!-- Staff list items will appear here -->
+                    </div>
+                </div>
+
+                <div class="section-title"><i data-lucide="database"></i> Data Management</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <button class="secondary" onclick="exportHistory()" style="font-size: 11px;">
+                        <i data-lucide="download" style="width:14px"></i> Export CSV
+                    </button>
+                    <button class="secondary" onclick="clearAllData()"
+                        style="font-size: 11px; color: #ef4444; border-color: #fee2e2;">
+                        <i data-lucide="trash-2" style="width:14px"></i> Clear History
+                    </button>
+                </div>
+            </div>
+
+            <button class="primary" onclick="saveBusinessConfig()" style="width: 100%; margin-top: 24px; height: 44px;">
+                <i data-lucide="check-circle"></i> Save Profile
+            </button>
+        </div>
+    </div>
+
+    <!-- Login Overlay (Now moved outside for independent access) -->
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-card">
+            <h2 id="loginTitle" style="margin-bottom:8px">Welcome</h2>
+            <p id="loginSubtitle" style="color:#94a3b8; font-size:14px; margin-bottom:24px">Select account to unlock
+                dashboard</p>
+
+            <div id="accountSelector"
+                style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 30px;">
+                <!-- JS will inject account buttons -->
+            </div>
+
+            <div id="pinEntry" style="display:none">
+                <button onclick="backToAccounts()" class="btn-icon" style="color:white; margin-bottom:10px">
+                    <i data-lucide="arrow-left" style="width:16px"></i> Back
+                </button>
+                <div class="pin-display" id="pinDisplay">****</div>
+                <div class="pin-pad">
+                    <button class="pin-btn" onclick="pressPin('1')">1</button>
+                    <button class="pin-btn" onclick="pressPin('2')">2</button>
+                    <button class="pin-btn" onclick="pressPin('3')">3</button>
+                    <button class="pin-btn" onclick="pressPin('4')">4</button>
+                    <button class="pin-btn" onclick="pressPin('5')">5</button>
+                    <button class="pin-btn" onclick="pressPin('6')">6</button>
+                    <button class="pin-btn" onclick="pressPin('7')">7</button>
+                    <button class="pin-btn" onclick="pressPin('8')">8</button>
+                    <button class="pin-btn" onclick="pressPin('9')">9</button>
+                    <div></div>
+                    <button class="pin-btn" onclick="pressPin('0')">0</button>
+                    <button class="pin-btn delete" onclick="clearPin()"><i data-lucide="delete"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration & State ---
+        const historyKey = "klassySalesHistory";
+        const loyaltyKey = "klassyLoyalty";
+        const bizKey = "pos_business_info";
+        const staffKey = "pos_staff_list";
+        const activeStaffKey = "pos_active_staff";
+
+        let isAuthorizingForSettings = false;
+        let targetStaff = "";
+        let currentPinDraft = "";
+        let revenueChartInstance = null;
+        let showAllHistoryItems = false;
+        let editingOrderId = null; // Track if we are updating an existing order
+
+        const commonServices = [
+            { name: "Shirt", price: 700 }, { name: "Trousers", price: 700 },
+            { name: "Suit (3pc)", price: 2500 }, { name: "Duvet", price: 2500 },
+            { name: "Bedspread", price: 1000 }, { name: "Native", price: 1500 },
+            { name: "Top", price: 700 }, { name: "Singlet", price: 300 },
+            { name: "Boxers", price: 300 }, { name: "Gown", price: 1500 }
+        ];
+
+        const $ = (id) => document.getElementById(id);
+
+        function init() {
+            if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(e => { });
+            const now = new Date();
+            if ($("date")) $("date").value = now.toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' });
+
+            loadBusinessConfig();
+            if (localStorage.getItem(bizKey)) triggerSwitch();
+
+            renderStaffManagement();
+            updateStaffSwitcher();
+
+            const tags = $("quickTags");
+            if (tags) {
+                tags.innerHTML = commonServices.map(s => `
+                        <button class="tag-btn" onclick="quickAdd('${s.name}', ${s.price})">
+                          <i data-lucide="tag" style="width:12px"></i> ${s.name}
+                        </button>
+                    `).join("");
+            }
+
+            resetForm();
+            updateCustomerSuggestions();
+            renderHistory();
+            updateSummary();
+            updateChart();
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function loadBusinessConfig() {
+            const config = JSON.parse(localStorage.getItem(bizKey) || "null");
+            if (!config) { openSetupModal(); return; }
+            if ($("sidebar-biz-name")) $("sidebar-biz-name").innerHTML = `<i data-lucide="sparkles"></i> ${config.name}`;
+            if ($("p-biz-name")) $("p-biz-name").innerText = config.name.toUpperCase();
+            if ($("p-biz-address")) $("p-biz-address").innerText = config.address;
+            if ($("p-biz-phone")) $("p-biz-phone").innerText = config.phone;
+            if ($("p-footer-biz")) $("p-footer-biz").innerText = config.name;
+            document.title = `${config.name} – Pro POS`;
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function showSetup() {
+            const active = localStorage.getItem(activeStaffKey) || "Admin";
+            if (active !== "Admin") {
+                isAuthorizingForSettings = true;
+                selectForLogin("Admin");
+                if ($("loginOverlay")) $("loginOverlay").style.display = "flex";
+                if ($("loginTitle")) $("loginTitle").innerText = "Manager Authorization";
+                return;
+            }
+            openSetupModal();
+        }
+
+        function openSetupModal() {
+            const config = JSON.parse(localStorage.getItem(bizKey) || "{}");
+            if ($("setup-name")) $("setup-name").value = config.name || "";
+            if ($("setup-address")) $("setup-address").value = config.address || "";
+            if ($("setup-phone")) $("setup-phone").value = config.phone || "";
+            if ($("setup-admin-pin")) $("setup-admin-pin").value = config.adminPin || "0000";
+            if ($("setupOverlay")) $("setupOverlay").style.display = "flex";
+        }
+
+        function hideSetup() { if ($("setupOverlay")) $("setupOverlay").style.display = "none"; }
+
+        function saveBusinessConfig() {
+            const config = { name: $("setup-name").value, address: $("setup-address").value, phone: $("setup-phone").value, adminPin: $("setup-admin-pin").value || "0000" };
+            if (!config.name || !config.address) return alert("Fill all fields.");
+            localStorage.setItem(bizKey, JSON.stringify(config));
+            loadBusinessConfig();
+            hideSetup();
+            showToast("Business Profile Updated!");
+        }
+
+        function addStaffMember() {
+            const n = $("newStaffName").value.trim(), p = $("newStaffPin").value.trim();
+            if (!n || p.length !== 4) return alert("Invalid PIN.");
+            let s = JSON.parse(localStorage.getItem(staffKey) || "[]");
+            if (s.find(x => x.name === n)) return alert("Exists.");
+            s.push({ name: n, pin: p });
+            localStorage.setItem(staffKey, JSON.stringify(s));
+            $("newStaffName").value = ""; $("newStaffPin").value = "";
+            renderStaffManagement();
+        }
+
+        function removeStaffMember(n) {
+            let s = JSON.parse(localStorage.getItem(staffKey) || "[]");
+            s = s.filter(x => x.name !== n);
+            localStorage.setItem(staffKey, JSON.stringify(s));
+            if (localStorage.getItem(activeStaffKey) === n) localStorage.setItem(activeStaffKey, "Admin");
+            renderStaffManagement(); updateStaffSwitcher();
+        }
+
+        function renderStaffManagement() {
+            const c = $("staffManageList"); if (!c) return;
+            const s = JSON.parse(localStorage.getItem(staffKey) || "[]");
+            c.innerHTML = s.map(x => `<div class="staff-list-item"><span>${x.name}</span><button class="btn-icon" onclick="removeStaffMember('${x.name}')"><i data-lucide="trash-2"></i></button></div>`).join("");
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function updateStaffSwitcher() {
+            const a = localStorage.getItem(activeStaffKey) || "Admin";
+            if ($("currentStaffName")) $("currentStaffName").innerText = a;
+            if ($("p-staff")) $("p-staff").innerText = a;
+        }
+
+        function triggerSwitch() {
+            isAuthorizingForSettings = false;
+            if ($("loginOverlay")) $("loginOverlay").style.display = "flex";
+            if ($("accountSelector")) $("accountSelector").style.display = "grid";
+            if ($("pinEntry")) $("pinEntry").style.display = "none";
+            const s = JSON.parse(localStorage.getItem(staffKey) || "[]");
+            let h = `<button class="secondary" onclick="selectForLogin('Admin')" style="height:80px">Admin</button>`;
+            h += s.map(x => `<button class="secondary" onclick="selectForLogin('${x.name}')" style="height:80px">${x.name}</button>`).join("");
+            if ($("accountSelector")) $("accountSelector").innerHTML = h;
+        }
+
+        function selectForLogin(n) {
+            targetStaff = n; currentPinDraft = "";
+            $("accountSelector").style.display = "none"; $("pinEntry").style.display = "block";
+            $("loginSubtitle").innerText = "Enter PIN for " + n; updatePinDisplay();
+        }
+
+        function backToAccounts() { $("pinEntry").style.display = "none"; $("accountSelector").style.display = "grid"; }
+        function pressPin(v) { if (currentPinDraft.length < 4) { currentPinDraft += v; updatePinDisplay(); if (currentPinDraft.length === 4) setTimeout(verifyLogin, 100); } }
+        function clearPin() { currentPinDraft = currentPinDraft.slice(0, -1); updatePinDisplay(); }
+        function updatePinDisplay() { if ($("pinDisplay")) $("pinDisplay").innerText = "*".repeat(currentPinDraft.length) || "----"; }
+
+        function verifyLogin() {
+            let p = "";
+            if (targetStaff === "Admin") { p = JSON.parse(localStorage.getItem(bizKey) || "{}").adminPin || "0000"; }
+            else { p = (JSON.parse(localStorage.getItem(staffKey) || "[]").find(x => x.name === targetStaff) || {}).pin; }
+            if (currentPinDraft === p) {
+                if (isAuthorizingForSettings) { isAuthorizingForSettings = false; $("loginOverlay").style.display = "none"; openSetupModal(); return; }
+                localStorage.setItem(activeStaffKey, targetStaff); updateStaffSwitcher();
+                $("loginOverlay").style.display = "none"; showToast("Welcome " + targetStaff); calculate();
+            } else { currentPinDraft = ""; updatePinDisplay(); showToast("Wrong PIN", true); }
+        }
+
+        function resetForm() {
+            if ($("customer")) $("customer").value = "";
+            if ($("phone")) $("phone").value = "";
+            if ($("sidebarItems")) $("sidebarItems").innerHTML = "";
+            if ($("orderStatus")) $("orderStatus").value = "Received";
+            editingOrderId = null; // Clear edit mode
+            addItem(); calculate();
+        }
+
+        function quickAdd(n, p) { addItem({ name: n, price: p, qty: 1 }); }
+
+        function addItem(d = {}) {
+            const l = $("sidebarItems"); if (!l) return;
+            const r = document.createElement("div"); r.className = "item-row";
+            r.innerHTML = `
+                    <input type="text" placeholder="Item Name" value="${d.name || ""}" oninput="calculate()">
+                    <input type="number" placeholder="Qty" value="${d.qty || 1}" oninput="calculate()" class="text-center">
+                    <input type="number" placeholder="Cost" value="${d.price || 0}" oninput="calculate()" class="text-right">
+                    <button class="btn-icon" onclick="this.parentElement.remove();calculate()"><i data-lucide="trash-2" style="width:14px"></i></button>
+                `;
+            l.appendChild(r); if (window.lucide) lucide.createIcons(); calculate();
+        }
+
+        function calculate() {
+            let s = 0; const b = $("p-itemsBody"); if (!b) return; b.innerHTML = "";
+            if ($("p-customer")) $("p-customer").innerText = $("customer").value || "---";
+            if ($("p-phone")) $("p-phone").innerText = $("phone").value || "---";
+            if ($("p-date")) $("p-date").innerText = $("date").value || "---";
+            document.querySelectorAll("#sidebarItems .item-row").forEach((r, i) => {
+                const ins = r.querySelectorAll("input");
+                const n = ins[0].value, q = +ins[1].value || 0, p = +ins[2].value || 0, sub = q * p; s += sub;
+                if (n || q > 0) { const tr = document.createElement("tr"); tr.innerHTML = `<td>${i + 1}</td><td>${n || "Item"}</td><td class="text-center">${q}</td><td class="text-right">${sub.toFixed(2)}</td>`; b.appendChild(tr); }
+            });
+            const f = "₦" + s.toLocaleString(undefined, { minimumFractionDigits: 2 });
+            if ($("p-subtotal")) $("p-subtotal").innerText = f;
+            if ($("p-total")) $("p-total").innerText = f;
+            if ($("p-due")) $("p-due").innerText = f;
+        }
+
+        function saveReceipt(e) {
+            const n = $("customer").value; if (!n) return alert("Enter name.");
+            const items = []; document.querySelectorAll("#sidebarItems .item-row").forEach(r => { const ins = r.querySelectorAll("input"); if (ins[0].value) items.push({ name: ins[0].value, qty: ins[1].value, price: ins[2].value }); });
+
+            const active = localStorage.getItem(activeStaffKey) || "Admin";
+            const record = {
+                id: editingOrderId || Date.now(),
+                customer: n,
+                phone: $("phone").value,
+                date: $("date").value,
+                total: $("p-total").innerText,
+                items: items,
+                staff: active,
+                status: $("orderStatus").value
+            };
+
+            const h = JSON.parse(localStorage.getItem(historyKey) || "[]");
+            if (editingOrderId) {
+                const idx = h.findIndex(x => x.id === editingOrderId);
+                if (idx !== -1) h[idx] = record;
+                else h.push(record);
+            } else {
+                h.push(record);
+            }
+
+            localStorage.setItem(historyKey, JSON.stringify(h));
+
+            const loyalty = JSON.parse(localStorage.getItem(loyaltyKey) || "{}");
+            if (!editingOrderId) { // Only increment loyalty for brand new orders
+                loyalty[n] = (loyalty[n] || 0) + 1;
+                localStorage.setItem(loyaltyKey, JSON.stringify(loyalty));
+            }
+
+            renderHistory(); updateSummary(); updateChart();
+            const btn = e ? e.currentTarget : null;
+            if (btn) { const old = btn.innerHTML; btn.innerHTML = "Saved!"; btn.style.background = "#10b981"; setTimeout(() => { btn.innerHTML = old; btn.style.background = ""; }, 2000); }
+            if (!editingOrderId) resetForm(); // Only reset if it's a new order
+        }
+
+        function updateSummary() {
+            const h = JSON.parse(localStorage.getItem(historyKey) || "[]");
+            const now = new Date();
+            const todayStr = now.toLocaleString('en-NG', { dateStyle: 'medium' });
+            const monthStr = now.toLocaleString('en-NG', { month: 'short', year: 'numeric' });
+            const yearStr = now.getFullYear().toString();
+
+            let daily = 0, monthly = 0, yearly = 0;
+
+            h.forEach(r => {
+                const total = parseFloat(r.total.replace(/[₦,]/g, '')) || 0;
+                if (r.date.includes(todayStr)) daily += total;
+                if (r.date.includes(monthStr)) monthly += total;
+                if (r.date.includes(yearStr)) yearly += total;
+            });
+
+            const fmt = (v) => "₦" + v.toLocaleString(undefined, { minimumFractionDigits: 2 });
+
+            if ($("dailyTotal")) $("dailyTotal").innerText = "₦" + daily.toLocaleString();
+            if ($("statDaily")) $("statDaily").innerText = fmt(daily);
+            if ($("statMonthly")) $("statMonthly").innerText = fmt(monthly);
+            if ($("statYearly")) $("statYearly").innerText = fmt(yearly);
+        }
+
+        function renderHistory() {
+            const list = $("historyList"); if (!list) return;
+            const searchTerm = ($("historySearch")?.value || "").toLowerCase();
+            const statusFilter = $("historyStatusFilter")?.value || "All";
+
+            list.innerHTML = "";
+            const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
+
+            const filtered = history.filter(x => {
+                const nameMatch = x.customer.toLowerCase().includes(searchTerm);
+                const statusMatch = statusFilter === "All" || (x.status || "Received") === statusFilter;
+                return nameMatch && statusMatch;
+            }).reverse();
+
+            const toShow = showAllHistoryItems ? filtered : filtered.slice(0, 5);
+
+            toShow.forEach(x => {
+                const d = document.createElement("div");
+                d.className = "history-card";
+                const statusClass = "status-" + (x.status || "Received").toLowerCase();
+                d.innerHTML = `
+                        <div class="meta">
+                            <strong>${x.customer}</strong> • ${x.date}<br>
+                            <small>Staff: ${x.staff || 'Admin'}</small>
+                        </div>
+                        <div style="text-align:right">
+                            <div class="total">${x.total}</div>
+                            <span class="badge ${statusClass}">${x.status || "Received"}</span>
+                        </div>
+                    `;
+                d.onclick = () => loadHistory(x);
+                list.appendChild(d);
+            });
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<div style="font-size:10px; color:#94a3b8; text-align:center; padding:10px;">No records found.</div>';
+            }
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function toggleAllHistory() {
+            showAllHistoryItems = !showAllHistoryItems;
+            if ($("historyToggleBtn")) $("historyToggleBtn").innerText = showAllHistoryItems ? "HIDE" : "SHOW ALL";
+            renderHistory();
+        }
+
+        function loadHistory(x) {
+            editingOrderId = x.id || null;
+            $("customer").value = x.customer;
+            $("phone").value = x.phone;
+            $("date").value = x.date;
+            if ($("orderStatus")) $("orderStatus").value = x.status || "Received";
+            $("sidebarItems").innerHTML = "";
+            x.items.forEach(addItem);
+            calculate();
+        }
+
+        function updateChart() {
+            if (!window.Chart || !$("revenueChart")) return;
+            const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
+            const days = [];
+            const dataArr = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(); d.setDate(d.getDate() - i);
+                const label = d.toLocaleDateString('en-NG', { day: 'numeric', month: 'short' });
+                const full = d.toLocaleDateString('en-NG', { dateStyle: 'medium' });
+                days.push(label);
+                let daySum = 0;
+                history.forEach(r => { if (r.date && r.date.includes(full)) daySum += parseFloat(r.total.replace(/[₦,]/g, '')) || 0; });
+                dataArr.push(daySum);
+            }
+
+            const ctx = $("revenueChart").getContext('2d');
+            if (revenueChartInstance) revenueChartInstance.destroy();
+            revenueChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: days,
+                    datasets: [{
+                        label: 'Revenue',
+                        data: dataArr,
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        function updateLoyalty() {
+            const n = $("customer").value.trim();
+            const badge = $("loyalty-badge");
+            if (!n) { badge.style.display = "none"; calculate(); return; }
+
+            const loyalty = JSON.parse(localStorage.getItem(loyaltyKey) || "{}");
+            const count = loyalty[n] || 0;
+
+            if (count > 0) {
+                badge.innerText = `${count} visit${count > 1 ? 's' : ''}`;
+                badge.style.display = "inline-block";
+            } else {
+                badge.style.display = "none";
+            }
+            calculate();
+        }
+        function updateCustomerSuggestions() { }
+        function shareWhatsApp() {
+            const config = JSON.parse(localStorage.getItem(bizKey)) || { name: "Business" };
+            const val = $("customer").value;
+            if (!window.html2canvas) return alert("Sharing library not loaded.");
+            html2canvas($("receipt")).then(canvas => {
+                const msg = `Hello ${val}, Invoice from ${config.name}. Total: ${$("p-total").innerText}`;
+                window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
+                const a = document.createElement("a");
+                a.href = canvas.toDataURL();
+                a.download = `receipt-${val}.png`;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            });
+        }
+
+        function exportHistory() {
+            const h = JSON.parse(localStorage.getItem(historyKey) || "[]");
+            if (!h.length) return alert("Nothing to export.");
+            let csv = "Date,Customer,Total,Staff,Items\n";
+            h.forEach(x => {
+                const items = x.items ? x.items.map(i => `${i.qty}x ${i.name}`).join(" | ") : "";
+                csv += `"${x.date}","${x.customer}","${x.total}","${x.staff || 'Admin'}","${items}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `sales_export.csv`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        }
+        function clearAllData() { if (confirm("Clear?")) { localStorage.removeItem(historyKey); renderHistory(); updateSummary(); } }
+        function showToast(m, err = false) { const t = document.createElement("div"); t.style = "position:fixed; top:20px; left:50%; transform:translateX(-50%); background:" + (err ? "#ef4444" : "#10b981") + "; color:white; padding:12px; border-radius:8px; z-index:9999;"; t.innerText = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2000); }
+
+        window.onload = init;
+    </script>
+</body>
+
+</html>
