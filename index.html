@@ -1,3 +1,4 @@
+`
 <!DOCTYPE html>
 <html lang="en">
 
@@ -1486,18 +1487,64 @@
             calculate();
         }
         function updateCustomerSuggestions() { }
-        function shareWhatsApp() {
+        async function shareWhatsApp() {
             const config = JSON.parse(localStorage.getItem(bizKey)) || { name: "Business" };
-            const val = $("customer").value;
+            const customerName = $("customer").value || "Customer";
+            const phone = $("phone").value || "";
+            const total = $("p-total").innerText;
+            const msg = `Hello ${customerName}, here is your receipt from ${config.name}. Total: ${total}`;
+
             if (!window.html2canvas) return alert("Sharing library not loaded.");
-            html2canvas($("receipt")).then(canvas => {
-                const msg = `Hello ${val}, Invoice from ${config.name}. Total: ${$("p-total").innerText}`;
-                window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
-                const a = document.createElement("a");
-                a.href = canvas.toDataURL();
-                a.download = `receipt-${val}.png`;
-                document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            });
+
+            try {
+                showToast("Generating receipt image...");
+
+                // Capture the receipt with higher quality
+                const canvas = await html2canvas($("receipt"), {
+                    scale: 2, // Double resolution for clarity
+                    backgroundColor: "#ffffff",
+                    useCORS: true,
+                    logging: false
+                });
+
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                const file = new File([blob], `receipt-${customerName.replace(/\s+/g, '_')}.png`, { type: 'image/png' });
+
+                // Check if the browser supports sharing files
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        title: `Receipt from ${config.name}`,
+                        text: msg,
+                        files: [file]
+                    });
+                } else {
+                    // Fallback for Desktop/Unsupported browsers
+                    let formattedPhone = phone.replace(/\D/g, ''); // Remove non-numeric characters
+
+                    // Simple logic for Nigerian numbers: if it starts with 0 and is 11 digits, replace with 234
+                    if (formattedPhone.startsWith('0') && formattedPhone.length === 11) {
+                        formattedPhone = '234' + formattedPhone.substring(1);
+                    }
+
+                    const waBase = formattedPhone ? `https://api.whatsapp.com/send?phone=${formattedPhone}` : `https://api.whatsapp.com/send?text=`;
+                    const waUrl = formattedPhone ? `${waBase}&text=${encodeURIComponent(msg)}` : `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+
+                    window.open(waUrl, '_blank');
+
+                    // Trigger image download
+                    const a = document.createElement("a");
+                    a.href = canvas.toDataURL("image/png");
+                    a.download = `receipt-${customerName}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+
+                    showToast("Opening WhatsApp... Image downloaded.", false);
+                }
+            } catch (err) {
+                console.error("Shared failed:", err);
+                showToast("Share failed. Please use Print/Save.", true);
+            }
         }
 
         function exportHistory() {
