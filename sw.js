@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pro-pos-v7';
+const CACHE_NAME = 'pro-pos-v18';
 const ASSETS = [
     './',
     './index.html',
@@ -28,6 +28,20 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
     event.respondWith(
-        caches.match(event.request).then(response => response || fetch(event.request))
+        caches.match(event.request).then(cachedResponse => {
+            if (cachedResponse) return cachedResponse;
+
+            return fetch(event.request).then(networkResponse => {
+                if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic' && !event.request.url.includes('google') && !event.request.url.includes('unpkg') && !event.request.url.includes('jsdelivr')) {
+                    return networkResponse;
+                }
+
+                const responseToCache = networkResponse.clone();
+                caches.open(CACHE_NAME).then(cache => {
+                    cache.put(event.request, responseToCache);
+                });
+                return networkResponse;
+            });
+        })
     );
 });

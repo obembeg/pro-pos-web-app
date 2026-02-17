@@ -52,7 +52,7 @@
         /* Layout Structure */
         .sidebar {
             flex: 1;
-            max-width: 450px;
+            max-width: 500px;
             background: var(--bg-panel);
             border-right: 1px solid var(--border);
             display: flex;
@@ -461,10 +461,14 @@
 
         .history-card .meta {
             color: var(--text-muted);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
             margin-right: 10px;
+            line-height: 1.4;
+        }
+
+        .history-card .meta strong {
+            display: block;
+            color: var(--text-main);
+            font-size: 13px;
         }
 
         .history-card .total {
@@ -500,6 +504,41 @@
         .badge.status-collected {
             background: #f3f4f6;
             color: #374151;
+        }
+
+        /* Payment Badges */
+        .badge.pay-paid {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge.pay-unpaid {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge.pay-partial {
+            background: #ffedd5;
+            color: #9a3412;
+        }
+
+        select.badge {
+            border: 1px solid transparent;
+            cursor: pointer;
+            outline: none;
+            font-family: inherit;
+            appearance: none;
+            -webkit-appearance: none;
+            padding-right: 18px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 6px center;
+        }
+
+        select.badge:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+            border-color: rgba(0, 0, 0, 0.1);
         }
 
         /* Floating Analytics Box */
@@ -865,8 +904,12 @@
             justify-content: space-between;
             align-items: center;
           ">
-                <h1 id="sidebar-biz-name"><i data-lucide="sparkles"></i> Pro POS</h1>
+                <h1 id="sidebar-biz-name"><i data-lucide="sparkles"></i> Smart Business by OG</h1>
                 <div style="display: flex; gap: 8px">
+                    <button class="settings-btn" onclick="openAnalytics()" title="Business Insights"
+                        style="color: white; opacity: 0.8">
+                        <i data-lucide="bar-chart-3" style="width: 18px"></i>
+                    </button>
                     <button class="settings-btn" onclick="openCustomerDirectory()" title="Customer Directory"
                         style="color: white; opacity: 0.8">
                         <i data-lucide="users" style="width: 18px"></i>
@@ -923,11 +966,30 @@
               border-radius: 6px;
               font-weight: 600;
             ">
-                    <option value="Received">🔵 Received</option>
-                    <option value="Processing">🟡 Processing</option>
                     <option value="Ready">🟢 Ready for Pickup</option>
                     <option value="Collected">🟣 Collected</option>
                 </select>
+            </div>
+
+            <div class="input-group">
+                <label>Payment Status</label>
+                <select id="paymentStatus" class="staff-select" onchange="togglePaidInput();calculate();" style="
+              width: 100%;
+              border: 1px solid var(--border);
+              padding: 8px;
+              border-radius: 6px;
+              font-weight: 600;
+              background: white;
+            ">
+                    <option value="Not Paid">🔴 Not Paid</option>
+                    <option value="Partly Paid">🟠 Partly Paid</option>
+                    <option value="Paid">🟢 Fully Paid</option>
+                </select>
+            </div>
+
+            <div class="input-group" id="paidInputGroup" style="display: none">
+                <label>Amount Paid (₦)</label>
+                <input id="amountPaid" type="number" placeholder="0.00" oninput="calculate()" />
             </div>
 
             <div class="section-title">
@@ -963,27 +1025,26 @@
                     <i data-lucide="rotate-ccw"></i> New
                 </button>
             </div>
-        </div>
 
-        <div class="history-section">
-            <div class="section-title" style="
+            <div class="history-section">
+                <div class="section-title" style="
             margin-top: 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
           ">
-                <span><i data-lucide="history"></i> Recent Sales</span>
-                <div style="display: flex; gap: 8px">
-                    <button onclick="exportHistory()" style="
+                    <span><i data-lucide="history"></i> Recent Sales</span>
+                    <div style="display: flex; gap: 8px">
+                        <button onclick="exportHistory()" style="
                 background: none;
                 border: none;
                 color: var(--text-muted);
                 font-size: 10px;
                 cursor: pointer;
               " title="Export to CSV">
-                        <i data-lucide="download" style="width: 12px"></i> CSV
-                    </button>
-                    <button onclick="toggleAllHistory()" id="historyToggleBtn" style="
+                            <i data-lucide="download" style="width: 12px"></i> CSV
+                        </button>
+                        <button onclick="toggleAllHistory()" id="historyToggleBtn" style="
                 background: none;
                 border: none;
                 color: var(--primary);
@@ -991,12 +1052,12 @@
                 cursor: pointer;
                 font-weight: 700;
               ">
-                        SHOW ALL
-                    </button>
+                            SHOW ALL
+                        </button>
+                    </div>
                 </div>
-            </div>
-            <div style="display: flex; gap: 4px; margin-bottom: 8px">
-                <input id="historySearch" placeholder="Filter by name..." oninput="renderHistory()" style="
+                <div style="display: flex; gap: 4px; margin-bottom: 8px">
+                    <input id="historySearch" placeholder="Filter by name..." oninput="renderHistory()" style="
               flex: 1;
               background: white;
               font-size: 12px;
@@ -1004,7 +1065,7 @@
               border: 1px solid var(--border);
               border-radius: 4px;
             " />
-                <select id="historyStatusFilter" onchange="renderHistory()" style="
+                    <select id="historyStatusFilter" onchange="renderHistory()" style="
               font-size: 11px;
               border: 1px solid var(--border);
               border-radius: 4px;
@@ -1013,14 +1074,15 @@
               font-weight: 600;
               cursor: pointer;
             ">
-                    <option value="All">All Status</option>
-                    <option value="Received">🔵 Received</option>
-                    <option value="Processing">🟡 Processing</option>
-                    <option value="Ready">🟢 Ready</option>
-                    <option value="Collected">🟣 Collected</option>
-                </select>
+                        <option value="All">All Status</option>
+                        <option value="Received">🔵 Received</option>
+                        <option value="Processing">🟡 Processing</option>
+                        <option value="Ready">🟢 Ready</option>
+                        <option value="Collected">🟣 Collected</option>
+                    </select>
+                </div>
+                <div id="historyList"></div>
             </div>
-            <div id="historyList"></div>
         </div>
     </aside>
 
@@ -1074,8 +1136,14 @@
               ">
                         <span>TOTAL:</span> <span id="p-total">₦0.00</span>
                     </div>
-                    <div style="font-style: italic; font-size: 10px; margin-top: 10px">
-                        Amount Due: <span id="p-due">₦0.00</span>
+                    <div style="font-size: 10px; margin-top: 4px;">
+                        <span>Paid:</span> <span id="p-paid">₦0.00</span>
+                    </div>
+                    <div style="font-style: italic; font-size: 10px; font-weight: 700;">
+                        Balance: <span id="p-due">₦0.00</span>
+                    </div>
+                    <div style="font-size: 9px; margin-top: 2px; color: #666;">
+                        Status: <span id="p-pay-status">Not Paid</span>
                     </div>
                 </div>
 
@@ -1086,43 +1154,29 @@
                 <div class="center" style="font-size: 9px; margin-top: 10px">
                     Thanks for choosing <span id="p-footer-biz">our business</span>!
                 </div>
+                <div style="text-align: right; font-size: 7px; color: #999; margin-top: 10px;">
+                    app by OG 08105781658
+                </div>
             </div>
         </div>
 
-        <div class="chart-container">
-            <div class="chart-header">
-                <h3>
-                    <i data-lucide="bar-chart-3" style="
-                width: 18px;
-                vertical-align: middle;
-                margin-right: 8px;
-                color: var(--primary);
-              "></i>
-                    Revenue Trends
-                </h3>
-                <button class="primary" onclick="openAnalytics()" style="padding: 6px 12px; font-size: 11px;">
-                    <i data-lucide="pie-chart" style="width:14px"></i> Detailed Insights
-                </button>
-            </div>
-            <canvas id="revenueChart" height="150"></canvas>
-        </div>
     </main>
 
     <!-- Sales Dashboard -->
-    <div class="analytics-box" id="analyticsBox">
+    <div class="analytics-box" id="analyticsBox" style="gap: 12px; padding: 12px 24px;">
         <div class="stat-item">
-            <div class="stat-label">Today</div>
+            <div class="stat-label">Today's Revenue</div>
             <div class="stat-value" id="statDaily">₦0.00</div>
         </div>
         <div style="width: 1px; background: rgba(255, 255, 255, 0.1)"></div>
         <div class="stat-item">
-            <div class="stat-label">This Month</div>
-            <div class="stat-value" id="statMonthly">₦0.00</div>
+            <div class="stat-label">Pending Collection</div>
+            <div class="stat-value" id="statPendingCount">0</div>
         </div>
         <div style="width: 1px; background: rgba(255, 255, 255, 0.1)"></div>
         <div class="stat-item">
-            <div class="stat-label">This Year</div>
-            <div class="stat-value" id="statYearly">₦0.00</div>
+            <div class="stat-label">Unpaid Balance</div>
+            <div class="stat-value" id="statUnpaidDebt" style="color: #fda4af;">₦0.00</div>
         </div>
         <button onclick="document.getElementById('analyticsBox').style.display = 'none'" class="btn-icon"
             style="color: #94a3b8; margin-left: 10px">
@@ -1280,8 +1334,18 @@
             </div>
 
             <div id="analyticsContent"
-                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; max-height: 50vh; overflow-y: auto; padding: 4px;">
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
                 <!-- JS will inject stats here -->
+            </div>
+
+            <div style="background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid var(--border);">
+                <h3
+                    style="font-size: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: var(--text-main);">
+                    <i data-lucide="line-chart" style="width: 16px;"></i> Revenue Trend (Last 7 Days)
+                </h3>
+                <div style="height: 180px; position: relative;">
+                    <canvas id="revenueChartModal"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -1435,6 +1499,9 @@
                 $("setup-admin-pin").value = config.adminPin || "0000";
             if ($("setupOverlay")) $("setupOverlay").style.display = "flex";
         }
+
+        let revenueChartModalInstance = null;
+
 
         function hideSetup() {
             if ($("setupOverlay")) $("setupOverlay").style.display = "none";
@@ -1635,7 +1702,27 @@
                 "₦" + s.toLocaleString(undefined, { minimumFractionDigits: 2 });
             if ($("p-subtotal")) $("p-subtotal").innerText = f;
             if ($("p-total")) $("p-total").innerText = f;
-            if ($("p-due")) $("p-due").innerText = f;
+
+            const pStatus = $("paymentStatus") ? $("paymentStatus").value : "Not Paid";
+            const amtPaid = parseFloat($("amountPaid") ? $("amountPaid").value : 0) || 0;
+            const balance = s - amtPaid;
+            const fb = "₦" + (balance > 0 ? balance : 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
+            const fp = "₦" + amtPaid.toLocaleString(undefined, { minimumFractionDigits: 2 });
+
+            if ($("p-paid")) $("p-paid").innerText = fp;
+            if ($("p-due")) $("p-due").innerText = fb;
+            if ($("p-pay-status")) $("p-pay-status").innerText = pStatus;
+        }
+
+        function togglePaidInput() {
+            const status = $("paymentStatus").value;
+            const group = $("paidInputGroup");
+            if (status === "Partly Paid" || status === "Paid") {
+                group.style.display = "block";
+            } else {
+                group.style.display = "none";
+                $("amountPaid").value = 0;
+            }
         }
 
         function saveReceipt(e) {
@@ -1662,6 +1749,8 @@
                 items: items,
                 staff: active,
                 status: $("orderStatus").value,
+                paymentStatus: $("paymentStatus").value,
+                amountPaid: $("amountPaid").value || 0
             };
 
             const h = JSON.parse(localStorage.getItem(historyKey) || "[]");
@@ -1702,31 +1791,30 @@
             const h = JSON.parse(localStorage.getItem(historyKey) || "[]");
             const now = new Date();
             const todayStr = now.toLocaleString("en-NG", { dateStyle: "medium" });
-            const monthStr = now.toLocaleString("en-NG", {
-                month: "short",
-                year: "numeric",
-            });
-            const yearStr = now.getFullYear().toString();
 
-            let daily = 0,
-                monthly = 0,
-                yearly = 0;
+            let dailyTotal = 0,
+                pendingCollection = 0,
+                unpaidDebt = 0;
 
             h.forEach((r) => {
-                const total = parseFloat(r.total.replace(/[₦,]/g, "")) || 0;
-                if (r.date.includes(todayStr)) daily += total;
-                if (r.date.includes(monthStr)) monthly += total;
-                if (r.date.includes(yearStr)) yearly += total;
+                const totalVal = parseFloat(r.total.replace(/[₦,]/g, "")) || 0;
+                const paidVal = parseFloat(r.amountPaid || 0) || 0;
+                const balance = totalVal - paidVal;
+
+                if (r.date.includes(todayStr)) dailyTotal += totalVal;
+
+                if (r.status === "Ready") pendingCollection++;
+                if (balance > 0) unpaidDebt += balance;
             });
 
             const fmt = (v) =>
-                "₦" + v.toLocaleString(undefined, { minimumFractionDigits: 2 });
+                "₦" + v.toLocaleString(undefined, { minimumFractionDigits: 0 });
 
             if ($("dailyTotal"))
-                $("dailyTotal").innerText = "₦" + daily.toLocaleString();
-            if ($("statDaily")) $("statDaily").innerText = fmt(daily);
-            if ($("statMonthly")) $("statMonthly").innerText = fmt(monthly);
-            if ($("statYearly")) $("statYearly").innerText = fmt(yearly);
+                $("dailyTotal").innerText = fmt(dailyTotal);
+            if ($("statDaily")) $("statDaily").innerText = fmt(dailyTotal);
+            if ($("statPendingCount")) $("statPendingCount").innerText = pendingCollection;
+            if ($("statUnpaidDebt")) $("statUnpaidDebt").innerText = fmt(unpaidDebt);
         }
 
         function renderHistory() {
@@ -1753,16 +1841,36 @@
             toShow.forEach((x) => {
                 const d = document.createElement("div");
                 d.className = "history-card";
-                const statusClass =
-                    "status-" + (x.status || "Received").toLowerCase();
+                const status = x.status || "Received";
+                const pStatus = x.paymentStatus || "Not Paid";
+
+                const statusClass = "status-" + status.toLowerCase();
+                const pStatusClass = "pay-" + pStatus.replace(" ", "").toLowerCase();
+
                 d.innerHTML = `
                         <div class="meta">
                             <strong>${x.customer}</strong> • ${x.date}<br>
-                            <small>Staff: ${x.staff || "Admin"}</small>
+                            <small>Op: ${x.staff || "Admin"}</small>
                         </div>
                         <div style="text-align:right">
                             <div class="total">${x.total}</div>
-                            <span class="badge ${statusClass}">${x.status || "Received"}</span>
+                            <div style="display: flex; gap: 4px; justify-content: flex-end; margin-top: 4px;">
+                                <select class="badge ${statusClass}" 
+                                    onchange="updateStatusFast(${x.id}, this.value, event)" 
+                                    onclick="event.stopPropagation()" style="font-size: 9px; padding-top: 1px; padding-bottom: 1px;">
+                                    <option value="Received" ${status === 'Received' ? 'selected' : ''}>Received</option>
+                                    <option value="Processing" ${status === 'Processing' ? 'selected' : ''}>Processing</option>
+                                    <option value="Ready" ${status === 'Ready' ? 'selected' : ''}>Ready</option>
+                                    <option value="Collected" ${status === 'Collected' ? 'selected' : ''}>Collected</option>
+                                </select>
+                                <select class="badge ${pStatusClass}" 
+                                    onchange="updatePaymentStatusFast(${x.id}, this.value, event)" 
+                                    onclick="event.stopPropagation()" style="font-size: 9px; padding-top: 1px; padding-bottom: 1px;">
+                                    <option value="Not Paid" ${pStatus === 'Not Paid' ? 'selected' : ''}>Unpaid</option>
+                                    <option value="Partly Paid" ${pStatus === 'Partly Paid' ? 'selected' : ''}>Partial</option>
+                                    <option value="Paid" ${pStatus === 'Paid' ? 'selected' : ''}>Paid</option>
+                                </select>
+                            </div>
                         </div>
                     `;
                 d.onclick = () => loadHistory(x);
@@ -1791,13 +1899,16 @@
             $("phone").value = x.phone;
             $("date").value = x.date;
             if ($("orderStatus")) $("orderStatus").value = x.status || "Received";
+            if ($("paymentStatus")) $("paymentStatus").value = x.paymentStatus || "Not Paid";
+            if ($("amountPaid")) $("amountPaid").value = x.amountPaid || 0;
+            togglePaidInput();
             $("sidebarItems").innerHTML = "";
             x.items.forEach(addItem);
             calculate();
         }
 
         function updateChart() {
-            if (!window.Chart || !$("revenueChart")) return;
+            if (!window.Chart) return;
             const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
             const days = [];
             const dataArr = [];
@@ -1818,30 +1929,49 @@
                 dataArr.push(daySum);
             }
 
-            const ctx = $("revenueChart").getContext("2d");
-            if (revenueChartInstance) revenueChartInstance.destroy();
-            revenueChartInstance = new Chart(ctx, {
-                type: "line",
-                data: {
-                    labels: days,
-                    datasets: [
-                        {
-                            label: "Revenue",
-                            data: dataArr,
-                            borderColor: "#4f46e5",
-                            backgroundColor: "rgba(79, 70, 229, 0.1)",
-                            borderWidth: 3,
-                            fill: true,
-                            tension: 0.4,
-                        },
-                    ],
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true } },
-                },
-            });
+            const chartData = {
+                labels: days,
+                datasets: [
+                    {
+                        label: "Revenue",
+                        data: dataArr,
+                        borderColor: "#4f46e5",
+                        backgroundColor: "rgba(79, 70, 229, 0.1)",
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                    },
+                ],
+            };
+
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } },
+            };
+
+            // Main View Chart
+            if ($("revenueChart")) {
+                const ctx = $("revenueChart").getContext("2d");
+                if (revenueChartInstance) revenueChartInstance.destroy();
+                revenueChartInstance = new Chart(ctx, {
+                    type: "line",
+                    data: chartData,
+                    options: chartOptions,
+                });
+            }
+
+            // Modal Chart
+            if ($("revenueChartModal")) {
+                const ctxM = $("revenueChartModal").getContext("2d");
+                if (revenueChartModalInstance) revenueChartModalInstance.destroy();
+                revenueChartModalInstance = new Chart(ctxM, {
+                    type: "line",
+                    data: chartData,
+                    options: chartOptions,
+                });
+            }
         }
 
         function updateLoyalty() {
@@ -2029,16 +2159,25 @@
             }
 
             // Calculations
-            const totalRevenue = filtered.reduce((acc, h) => acc + (parseFloat(h.total.replace(/[₦,]/g, "")) || 0), 0);
-            const totalOrders = filtered.length;
+            let totalRevenue = 0;
+            let totalOrders = filtered.length;
+            let totalDebt = 0;
+            let pendingItems = 0;
 
             const customerCounts = {};
             const serviceCounts = {};
             let uniqueCustomers = new Set();
 
             filtered.forEach(h => {
+                const total = (parseFloat(h.total.replace(/[₦,]/g, "")) || 0);
+                const paid = (parseFloat(h.amountPaid || 0) || 0);
+
+                totalRevenue += total;
+                totalDebt += (total - paid);
+                if (h.status === "Ready") pendingItems++;
+
                 uniqueCustomers.add(h.customer);
-                customerCounts[h.customer] = (customerCounts[h.customer] || 0) + (parseFloat(h.total.replace(/[₦,]/g, "")) || 0);
+                customerCounts[h.customer] = (customerCounts[h.customer] || 0) + total;
 
                 h.items.forEach(item => {
                     serviceCounts[item.name] = (serviceCounts[item.name] || 0) + parseInt(item.qty);
@@ -2053,6 +2192,14 @@
                 <div class="analytics-grid-card">
                     <div class="lbl">Total Revenue</div>
                     <div class="val">₦${totalRevenue.toLocaleString()}</div>
+                </div>
+                <div class="analytics-grid-card">
+                    <div class="lbl">Unpaid Balance</div>
+                    <div class="val" style="color: #ef4444;">₦${totalDebt.toLocaleString()}</div>
+                </div>
+                <div class="analytics-grid-card">
+                    <div class="lbl">Orders Ready</div>
+                    <div class="val">${pendingItems}</div>
                 </div>
                 <div class="analytics-grid-card">
                     <div class="lbl">Total Orders</div>
@@ -2081,6 +2228,9 @@
             `;
 
             if (window.lucide) lucide.createIcons();
+
+            // Redraw chart in modal to ensure it fits the new layout
+            setTimeout(updateChart, 100);
         }
 
         // --- Customer Directory Logic ---
@@ -2183,6 +2333,43 @@
                 </div>
             `;
             if (window.lucide) lucide.createIcons();
+        }
+
+        // --- Status Logic ---
+        function updateStatusFast(id, newStatus, event) {
+            if (event) event.stopPropagation();
+            const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
+            const idx = history.findIndex(x => x.id == id);
+            if (idx !== -1) {
+                history[idx].status = newStatus;
+                localStorage.setItem(historyKey, JSON.stringify(history));
+
+                // Also update loyalty if needed (though usually not status dependent)
+
+                showToast(`Status updated to ${newStatus}`);
+                renderHistory();
+                updateSummary();
+            }
+        }
+
+        function updatePaymentStatusFast(id, newStatus, event) {
+            if (event) event.stopPropagation();
+            const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
+            const idx = history.findIndex(x => x.id == id);
+            if (idx !== -1) {
+                history[idx].paymentStatus = newStatus;
+
+                // If switching to 'Paid', auto-fill amountPaid to match total for accurate accounting
+                if (newStatus === "Paid") {
+                    const totalVal = parseFloat(history[idx].total.replace(/[₦,]/g, "")) || 0;
+                    history[idx].amountPaid = totalVal;
+                }
+
+                localStorage.setItem(historyKey, JSON.stringify(history));
+                showToast(`Payment: ${newStatus}`);
+                renderHistory();
+                updateSummary();
+            }
         }
 
         window.onload = init;
