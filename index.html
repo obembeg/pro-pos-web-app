@@ -290,20 +290,24 @@
         .receipt-table th {
             text-align: left;
             border-bottom: 1px solid #000;
-            padding: 4px 0;
+            padding: 6px 4px;
         }
 
         .receipt-table td {
-            padding: 4px 0;
+            padding: 6px 4px;
             vertical-align: top;
         }
 
         .text-right {
-            text-align: right;
+            text-align: right !important;
         }
 
         .text-center {
-            text-align: center;
+            text-align: center !important;
+        }
+
+        .text-left {
+            text-align: left !important;
         }
 
         .receipt-totals {
@@ -863,9 +867,16 @@
             align-items: center;
           ">
                 <h1 id="sidebar-biz-name"><i data-lucide="sparkles"></i> Pro POS</h1>
-                <button class="settings-btn" onclick="showSetup()" title="Settings" style="color: white; opacity: 0.8">
-                    <i data-lucide="settings" style="width: 18px"></i>
-                </button>
+                <div style="display: flex; gap: 8px">
+                    <button class="settings-btn" onclick="openCustomerDirectory()" title="Customer Directory"
+                        style="color: white; opacity: 0.8">
+                        <i data-lucide="users" style="width: 18px"></i>
+                    </button>
+                    <button class="settings-btn" onclick="showSetup()" title="Settings"
+                        style="color: white; opacity: 0.8">
+                        <i data-lucide="settings" style="width: 18px"></i>
+                    </button>
+                </div>
             </div>
 
             <div class="user-chip" onclick="triggerSwitch()" title="Lock / Switch Account">
@@ -1208,6 +1219,40 @@
             <button class="primary" onclick="saveBusinessConfig()" style="width: 100%; margin-top: 24px; height: 44px">
                 <i data-lucide="check-circle"></i> Save Profile
             </button>
+        </div>
+    </div>
+
+    <!-- Customer Directory Overlay -->
+    <div id="customerOverlay" class="setup-overlay">
+        <div class="setup-card" style="max-width: 600px; width: 95%;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                <div>
+                    <h2><i data-lucide="contact" style="color: var(--primary);"></i> Customer Directory</h2>
+                    <p>Manage and track your customer relationships.</p>
+                </div>
+                <button onclick="closeCustomerDirectory()" class="btn-icon">
+                    <i data-lucide="x" style="width: 24px;"></i>
+                </button>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <input id="customerSearch" placeholder="Search by name or phone..." oninput="renderCustomerList()"
+                    style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
+            </div>
+
+            <div id="customerList"
+                style="max-height: 50vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                <!-- JS will inject customers here -->
+            </div>
+
+            <div id="customerDetailView"
+                style="display: none; border-top: 1px solid var(--border); margin-top: 20px; padding-top: 20px;">
+                <button onclick="backToCustomerList()" class="btn-icon"
+                    style="margin-bottom: 10px; font-size: 12px; display: flex; align-items: center; gap: 4px;">
+                    <i data-lucide="arrow-left" style="width: 14px;"></i> Back to List
+                </button>
+                <div id="customerDetailContent"></div>
+            </div>
         </div>
     </div>
 
@@ -1809,6 +1854,14 @@
                 return;
             }
 
+            const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
+            const customerRecord = history.find(h => h.customer.toLowerCase() === n.toLowerCase());
+
+            // Auto-fill phone if match found and phone field is empty
+            if (customerRecord && customerRecord.phone && !$("phone").value) {
+                $("phone").value = customerRecord.phone;
+            }
+
             const loyalty = JSON.parse(localStorage.getItem(loyaltyKey) || "{}");
             const count = loyalty[n] || 0;
 
@@ -1820,7 +1873,14 @@
             }
             calculate();
         }
-        function updateCustomerSuggestions() { }
+        function updateCustomerSuggestions() {
+            const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
+            const customers = [...new Set(history.map(h => h.customer))];
+            const datalist = $("customers");
+            if (datalist) {
+                datalist.innerHTML = customers.map(c => `<option value="${c}">${c}</option>`).join("");
+            }
+        }
         async function shareWhatsApp() {
             const config = JSON.parse(localStorage.getItem(bizKey)) || {
                 name: "Business",
@@ -2021,6 +2081,108 @@
                 </div>
             `;
 
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // --- Customer Directory Logic ---
+        function openCustomerDirectory() {
+            $("customerOverlay").style.display = "flex";
+            $("customerDetailView").style.display = "none";
+            $("customerList").style.display = "flex";
+            renderCustomerList();
+        }
+
+        function closeCustomerDirectory() {
+            $("customerOverlay").style.display = "none";
+        }
+
+        function backToCustomerList() {
+            $("customerDetailView").style.display = "none";
+            $("customerList").style.display = "flex";
+        }
+
+        function renderCustomerList() {
+            const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
+            const searchTerm = ($("customerSearch")?.value || "").toLowerCase();
+            const customersMap = {};
+
+            history.forEach(h => {
+                const name = h.customer;
+                if (!customersMap[name]) {
+                    customersMap[name] = {
+                        name: name,
+                        phone: h.phone || "No phone",
+                        visits: 0,
+                        totalSpent: 0
+                    };
+                }
+                customersMap[name].visits++;
+                customersMap[name].totalSpent += (parseFloat(h.total.replace(/[₦,]/g, "")) || 0);
+            });
+
+            const customers = Object.values(customersMap).filter(c =>
+                c.name.toLowerCase().includes(searchTerm) ||
+                c.phone.includes(searchTerm)
+            ).sort((a, b) => b.totalSpent - a.totalSpent);
+
+            const list = $("customerList");
+            list.innerHTML = customers.map(c => `
+                <div class="history-card" onclick="viewCustomerDetails('${c.name.replace(/'/g, "\\'")}')">
+                    <div class="meta">
+                        <strong>${c.name}</strong><br>
+                        <small>${c.phone}</small>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="total">₦${c.totalSpent.toLocaleString()}</div>
+                        <span class="badge">${c.visits} visit${c.visits > 1 ? 's' : ''}</span>
+                    </div>
+                </div>
+            `).join("") || '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No customers found.</div>';
+
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function viewCustomerDetails(name) {
+            const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
+            const customerHistory = history.filter(h => h.customer === name).reverse();
+            const totalSpent = customerHistory.reduce((acc, h) => acc + (parseFloat(h.total.replace(/[₦,]/g, "")) || 0), 0);
+            const phone = customerHistory[0].phone || "No phone recorded";
+
+            $("customerList").style.display = "none";
+            $("customerDetailView").style.display = "block";
+
+            const detailContent = $("customerDetailContent");
+            detailContent.innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    <h3 style="margin: 0; font-size: 18px;">${name}</h3>
+                    <div style="color: var(--text-muted); font-size: 14px; margin-bottom: 12px;">${phone}</div>
+                    <div style="display: flex; gap: 12px;">
+                        <div class="analytics-grid-card" style="flex: 1; padding: 10px;">
+                            <div class="lbl">Lifetime Value</div>
+                            <div class="val" style="font-size: 16px;">₦${totalSpent.toLocaleString()}</div>
+                        </div>
+                        <div class="analytics-grid-card" style="flex: 1; padding: 10px;">
+                            <div class="lbl">Visits</div>
+                            <div class="val" style="font-size: 16px;">${customerHistory.length}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="section-title">Visit History</div>
+                <div style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto;">
+                    ${customerHistory.map(h => `
+                        <div class="history-card" style="cursor: default;">
+                            <div class="meta">
+                                <strong>${h.date}</strong><br>
+                                <small>${h.items.map(i => i.name).join(", ")}</small>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="total">${h.total}</div>
+                                <span class="badge ${'status-' + (h.status || 'Received').toLowerCase()}">${h.status || 'Received'}</span>
+                            </div>
+                        </div>
+                    `).join("")}
+                </div>
+            `;
             if (window.lucide) lucide.createIcons();
         }
 
