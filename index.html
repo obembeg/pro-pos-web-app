@@ -1150,6 +1150,13 @@
                 </div>
 
                 <div class="divider"></div>
+                <div id="p-bank-details" style="font-size: 10px; margin-top: 5px; display: none;">
+                    <strong>PAYMENT DETAILS:</strong><br>
+                    <span id="p-bank-name"></span><br>
+                    <span id="p-account-number"></span><br>
+                    <span id="p-account-name"></span>
+                </div>
+                <div class="divider"></div>
                 <div style="font-size: 10px; margin-top: 4px; color: #555">
                     Operator: <span id="p-staff">Admin</span>
                 </div>
@@ -1157,7 +1164,7 @@
                     Thanks for choosing <span id="p-footer-biz">our business</span>!
                 </div>
                 <div style="text-align: right; font-size: 7px; color: #999; margin-top: 10px;">
-                    app by OG 08105781658
+                    app developed by OG 08105781658
                 </div>
             </div>
         </div>
@@ -1226,6 +1233,22 @@
                 <div class="input-group">
                     <label>Admin Passcode (4-digit)</label>
                     <input id="setup-admin-pin" type="password" maxlength="4" placeholder="Default: 0000" />
+                </div>
+
+                <div class="section-title">
+                    <i data-lucide="credit-card"></i> Payment Details
+                </div>
+                <div class="input-group">
+                    <label>Bank Name</label>
+                    <input id="setup-bank-name" placeholder="e.g. GTBank, Zenith" />
+                </div>
+                <div class="input-group">
+                    <label>Account Number</label>
+                    <input id="setup-account-number" placeholder="10-digit account number" maxlength="10" />
+                </div>
+                <div class="input-group">
+                    <label>Account Name</label>
+                    <input id="setup-account-name" placeholder="Name on account" />
                 </div>
 
                 <div class="section-title">
@@ -1508,6 +1531,17 @@
             if ($("p-biz-address")) $("p-biz-address").innerText = config.address;
             if ($("p-biz-phone")) $("p-biz-phone").innerText = config.phone;
             if ($("p-footer-biz")) $("p-footer-biz").innerText = config.name;
+
+            // Bank details display
+            if (config.bankName && config.accountNumber) {
+                if ($("p-bank-details")) $("p-bank-details").style.display = "block";
+                if ($("p-bank-name")) $("p-bank-name").innerText = config.bankName;
+                if ($("p-account-number")) $("p-account-number").innerText = config.accountNumber;
+                if ($("p-account-name")) $("p-account-name").innerText = config.accountName || "";
+            } else {
+                if ($("p-bank-details")) $("p-bank-details").style.display = "none";
+            }
+
             document.title = `${config.name} – Pro POS`;
             if (window.lucide) lucide.createIcons();
         }
@@ -1532,6 +1566,9 @@
             if ($("setup-phone")) $("setup-phone").value = config.phone || "";
             if ($("setup-admin-pin"))
                 $("setup-admin-pin").value = config.adminPin || "0000";
+            if ($("setup-bank-name")) $("setup-bank-name").value = config.bankName || "";
+            if ($("setup-account-number")) $("setup-account-number").value = config.accountNumber || "";
+            if ($("setup-account-name")) $("setup-account-name").value = config.accountName || "";
             if ($("setupOverlay")) $("setupOverlay").style.display = "flex";
         }
 
@@ -1548,6 +1585,9 @@
                 address: $("setup-address").value,
                 phone: $("setup-phone").value,
                 adminPin: $("setup-admin-pin").value || "0000",
+                bankName: $("setup-bank-name").value,
+                accountNumber: $("setup-account-number").value,
+                accountName: $("setup-account-name").value,
             };
             if (!config.name || !config.address) return alert("Fill all fields.");
             localStorage.setItem(bizKey, JSON.stringify(config));
