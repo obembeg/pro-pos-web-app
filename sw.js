@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pro-pos-v25';
+const CACHE_NAME = 'pro-pos-v26';
 const ASSETS = [
     './',
     './index.html',
@@ -24,6 +24,7 @@ self.addEventListener('activate', event => {
             );
         })
     );
+    self.clients.claim();
 });
 
 self.addEventListener('fetch', event => {
