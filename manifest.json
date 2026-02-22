@@ -1,7 +1,7 @@
 {
-  "name": "Klassy Klean - Smart Business Manager",
-  "short_name": "Klassy Klean",
-  "description": "Professional Point of Sale and Receipt Generator for Small Businesses",
+  "name": "Laundry Business Manager",
+  "short_name": "Laundry POS",
+  "description": "Professional Laundry Management and Receipt System",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait-primary",
