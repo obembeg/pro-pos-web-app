@@ -1866,6 +1866,7 @@
             renderHistory();
             updateSummary();
             updateChart();
+            updateCustomerSuggestions();
             const btn = e ? e.currentTarget : null;
             if (btn) {
                 const old = btn.innerHTML;
@@ -1938,15 +1939,21 @@
 
                 const statusClass = "status-" + status.toLowerCase();
                 const pStatusClass = "pay-" + pStatus.replace(" ", "").toLowerCase();
+                const activeUser = localStorage.getItem(activeStaffKey) || "Admin";
+                const deleteBtn = activeUser === "Admin" ? `
+                    <button class="btn-icon" onclick="deleteOrder(${x.id}, event)" style="margin-top: 4px; padding: 2px; height: auto;">
+                        <i data-lucide="trash-2" style="width: 11px; color: #ef4444"></i>
+                    </button>
+                ` : "";
 
                 d.innerHTML = `
-                        <div class="meta">
+                        <div class="meta" style="flex: 1">
                             <strong>${x.customer}</strong> • ${x.date}<br>
                             <small>Op: ${x.staff || "Admin"}</small>
                         </div>
                         <div style="text-align:right">
                             <div class="total">${x.total}</div>
-                            <div style="display: flex; gap: 4px; justify-content: flex-end; margin-top: 4px;">
+                            <div style="display: flex; gap: 4px; justify-content: flex-end; align-items: center; margin-top: 4px;">
                                 <select class="badge ${statusClass}" 
                                     onchange="updateStatusFast(${x.id}, this.value, event)" 
                                     onclick="event.stopPropagation()" style="font-size: 9px; padding-top: 1px; padding-bottom: 1px;">
@@ -1962,6 +1969,7 @@
                                     <option value="Partly Paid" ${pStatus === 'Partly Paid' ? 'selected' : ''}>Partial</option>
                                     <option value="Paid" ${pStatus === 'Paid' ? 'selected' : ''}>Paid</option>
                                 </select>
+                                ${deleteBtn}
                             </div>
                         </div>
                     `;
@@ -2138,10 +2146,21 @@
         }
         function updateCustomerSuggestions() {
             const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
-            const customers = [...new Set(history.map(h => h.customer))];
+            // Create a unique list of customers with their phone numbers
+            const customerMap = {};
+            history.forEach(h => {
+                if (h.customer) {
+                    // Store the most recent phone number for each name
+                    customerMap[h.customer] = h.phone || "";
+                }
+            });
+
             const datalist = $("customers");
             if (datalist) {
-                datalist.innerHTML = customers.map(c => `<option value="${c}">${c}</option>`).join("");
+                datalist.innerHTML = Object.entries(customerMap).map(([name, phone]) => {
+                    const label = phone ? `${name} (${phone})` : name;
+                    return `<option value="${name}">${label}</option>`;
+                }).join("");
             }
         }
         async function shareWhatsApp() {
@@ -2243,6 +2262,7 @@
                 localStorage.removeItem(historyKey);
                 renderHistory();
                 updateSummary();
+                updateCustomerSuggestions();
             }
         }
         function showToast(m, err = false) {
@@ -2504,6 +2524,25 @@
                 renderHistory();
                 updateSummary();
             }
+        }
+
+        function deleteOrder(id, event) {
+            if (event) event.stopPropagation();
+            if (!confirm("Are you sure you want to delete this invoice? This cannot be undone.")) return;
+
+            let history = JSON.parse(localStorage.getItem(historyKey) || "[]");
+            history = history.filter(x => x.id != id);
+            localStorage.setItem(historyKey, JSON.stringify(history));
+
+            if (editingOrderId == id) {
+                resetForm();
+            }
+
+            showToast("Invoice deleted");
+            renderHistory();
+            updateSummary();
+            updateChart();
+            updateCustomerSuggestions();
         }
 
         window.onload = init;
