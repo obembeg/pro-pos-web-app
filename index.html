@@ -1127,6 +1127,8 @@
 
                 <div class="receipt-totals">
                     <div><span>Subtotal:</span> <span id="p-subtotal">₦0.00</span></div>
+                    <div id="p-old-balance-row" style="display: none;"><span>Old Balance:</span> <span
+                            id="p-old-balance">₦0.00</span></div>
                     <div style="
                 font-weight: 700;
                 font-size: 13px;
@@ -1391,6 +1393,26 @@
             </div>
         </div>
     </div>
+    <!-- Balance Prompt Overlay -->
+    <div id="balanceOverlay" class="setup-overlay">
+        <div class="setup-card" style="max-width: 350px; text-align: center;">
+            <div style="margin-bottom: 20px;">
+                <div
+                    style="background: #fff1f2; color: #e11d48; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; border: 4px solid #ffe4e6;">
+                    <i data-lucide="alert-circle" style="width: 32px; height: 32px;"></i>
+                </div>
+                <h2 style="justify-content: center; font-size: 20px;">Unpaid Balance!</h2>
+                <p id="balancePromptText" style="font-size: 14px; color: var(--text-muted); margin-bottom: 0;">This
+                    customer has an outstanding balance of ₦0.00.</p>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <button class="secondary" onclick="resolveBalancePrompt(false)"
+                    style="height: 44px; font-weight: 700;">SKIP</button>
+                <button class="primary" onclick="resolveBalancePrompt(true)"
+                    style="height: 44px; background: #e11d48; font-weight: 700;">ADD IT</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         // --- Configuration & State ---
@@ -1406,6 +1428,8 @@
         let revenueChartInstance = null;
         let showAllHistoryItems = false;
         let editingOrderId = null; // Track if we are updating an existing order
+        let carriedBalance = 0;
+        let currentPromptedCustomer = "";
 
         const commonServices = [
             { name: "Shirt", price: 700 },
@@ -1646,6 +1670,9 @@
             if ($("sidebarItems")) $("sidebarItems").innerHTML = "";
             if ($("orderStatus")) $("orderStatus").value = "Received";
             editingOrderId = null; // Clear edit mode
+            carriedBalance = 0;
+            currentPromptedCustomer = "";
+            if ($("p-old-balance-row")) $("p-old-balance-row").style.display = "none";
             addItem();
             calculate();
         }
@@ -1701,11 +1728,24 @@
             const f =
                 "₦" + s.toLocaleString(undefined, { minimumFractionDigits: 2 });
             if ($("p-subtotal")) $("p-subtotal").innerText = f;
-            if ($("p-total")) $("p-total").innerText = f;
+
+            const totalWithCarried = s + carriedBalance;
+            const ft = "₦" + totalWithCarried.toLocaleString(undefined, { minimumFractionDigits: 2 });
+            if ($("p-total")) $("p-total").innerText = ft;
+
+            if ($("p-old-balance-row")) {
+                if (carriedBalance > 0) {
+                    $("p-old-balance-row").style.display = "flex";
+                    $("p-old-balance-row").style.justifyContent = "space-between";
+                    $("p-old-balance").innerText = "₦" + carriedBalance.toLocaleString(undefined, { minimumFractionDigits: 2 });
+                } else {
+                    $("p-old-balance-row").style.display = "none";
+                }
+            }
 
             const pStatus = $("paymentStatus") ? $("paymentStatus").value : "Not Paid";
             const amtPaid = parseFloat($("amountPaid") ? $("amountPaid").value : 0) || 0;
-            const balance = s - amtPaid;
+            const balance = totalWithCarried - amtPaid;
             const fb = "₦" + (balance > 0 ? balance : 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
             const fp = "₦" + amtPaid.toLocaleString(undefined, { minimumFractionDigits: 2 });
 
@@ -1750,7 +1790,8 @@
                 staff: active,
                 status: $("orderStatus").value,
                 paymentStatus: $("paymentStatus").value,
-                amountPaid: $("amountPaid").value || 0
+                amountPaid: $("amountPaid").value || 0,
+                carriedBalance: carriedBalance
             };
 
             const h = JSON.parse(localStorage.getItem(historyKey) || "[]");
@@ -1901,6 +1942,8 @@
             if ($("orderStatus")) $("orderStatus").value = x.status || "Received";
             if ($("paymentStatus")) $("paymentStatus").value = x.paymentStatus || "Not Paid";
             if ($("amountPaid")) $("amountPaid").value = x.amountPaid || 0;
+            carriedBalance = x.carriedBalance || 0;
+            currentPromptedCustomer = x.customer; // Don't prompt again for this one
             togglePaidInput();
             $("sidebarItems").innerHTML = "";
             x.items.forEach(addItem);
@@ -1979,6 +2022,9 @@
             const badge = $("loyalty-badge");
             if (!n) {
                 badge.style.display = "none";
+                carriedBalance = 0;
+                currentPromptedCustomer = "";
+                if ($("p-old-balance-row")) $("p-old-balance-row").style.display = "none";
                 calculate();
                 return;
             }
@@ -1991,6 +2037,23 @@
                 $("phone").value = customerRecord.phone;
             }
 
+            // Check for balance if this is a brand new customer entry (not in edit mode)
+            if (!editingOrderId && n.toLowerCase() !== currentPromptedCustomer.toLowerCase()) {
+                const customersInHistory = history.filter(h => h.customer.toLowerCase() === n.toLowerCase());
+                if (customersInHistory.length > 0) {
+                    let totalDebt = 0;
+                    customersInHistory.forEach(r => {
+                        const t = parseFloat(r.total.replace(/[₦,]/g, '')) || 0;
+                        const p = parseFloat(r.amountPaid || 0) || 0;
+                        totalDebt += (t - p);
+                    });
+
+                    if (totalDebt > 1) { // Only prompt if debt is more than 1 Naira
+                        showBalancePrompt(n, totalDebt);
+                    }
+                }
+            }
+
             const loyalty = JSON.parse(localStorage.getItem(loyaltyKey) || "{}");
             const count = loyalty[n] || 0;
 
@@ -2000,6 +2063,26 @@
             } else {
                 badge.style.display = "none";
             }
+            calculate();
+        }
+
+        function showBalancePrompt(name, debt) {
+            currentPromptedCustomer = name;
+            $("balancePromptText").innerHTML = `<b>${name}</b> has an outstanding balance of <b>₦${debt.toLocaleString()}</b>.`;
+            $("balanceOverlay").setAttribute('data-debt', debt);
+            $("balanceOverlay").style.display = "flex";
+        }
+
+        function resolveBalancePrompt(add) {
+            const debt = parseFloat($("balanceOverlay").getAttribute('data-debt')) || 0;
+            if (add) {
+                carriedBalance = debt;
+                showToast("Balance added to invoice");
+            } else {
+                carriedBalance = 0;
+                showToast("Balance skipped");
+            }
+            $("balanceOverlay").style.display = "none";
             calculate();
         }
         function updateCustomerSuggestions() {
