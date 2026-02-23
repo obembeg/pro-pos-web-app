@@ -172,7 +172,7 @@
             border: 1px solid var(--border);
             border-radius: 8px;
             font-size: 13px;
-            transition: all 0.2s;
+            transition: all 0.5s;
             font-family: inherit;
         }
 
@@ -915,7 +915,9 @@
             justify-content: space-between;
             align-items: center;
           ">
-                <h1 id="sidebar-biz-name"><i data-lucide="sparkles"></i> Smart Business by OG</h1>
+                <h1 id="sidebar-biz-name">
+                    <i data-lucide="sparkles"></i> Smart Business by OG
+                </h1>
                 <div style="display: flex; gap: 8px">
                     <button class="settings-btn" onclick="openAnalytics()" title="Business Insights"
                         style="color: white; opacity: 0.8">
@@ -969,22 +971,11 @@
             </div>
 
             <div class="input-group">
-                <label>Order Status</label>
-                <select id="orderStatus" class="staff-select" style="
-              width: 100%;
-              border: 1px solid var(--border);
-              padding: 8px;
-              border-radius: 6px;
-              font-weight: 600;
-            ">
-                    <option value="Ready">🟢 Ready for Pickup</option>
-                    <option value="Collected">🟣 Collected</option>
-                </select>
-            </div>
-
-            <div class="input-group">
                 <label>Payment Status</label>
-                <select id="paymentStatus" class="staff-select" onchange="togglePaidInput();calculate();" style="
+                <select id="paymentStatus" class="staff-select" onchange="
+              togglePaidInput();
+              calculate();
+            " style="
               width: 100%;
               border: 1px solid var(--border);
               padding: 8px;
@@ -1039,52 +1030,52 @@
 
             <div class="history-section">
                 <div class="section-title" style="
-            margin-top: 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-          ">
+              margin-top: 0;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            ">
                     <span><i data-lucide="history"></i> Recent Sales</span>
                     <div style="display: flex; gap: 8px">
                         <button onclick="exportHistory()" style="
-                background: none;
-                border: none;
-                color: var(--text-muted);
-                font-size: 10px;
-                cursor: pointer;
-              " title="Export to CSV">
+                  background: none;
+                  border: none;
+                  color: var(--text-muted);
+                  font-size: 10px;
+                  cursor: pointer;
+                " title="Export to CSV">
                             <i data-lucide="download" style="width: 12px"></i> CSV
                         </button>
                         <button onclick="toggleAllHistory()" id="historyToggleBtn" style="
-                background: none;
-                border: none;
-                color: var(--primary);
-                font-size: 10px;
-                cursor: pointer;
-                font-weight: 700;
-              ">
+                  background: none;
+                  border: none;
+                  color: var(--primary);
+                  font-size: 10px;
+                  cursor: pointer;
+                  font-weight: 700;
+                ">
                             SHOW ALL
                         </button>
                     </div>
                 </div>
                 <div style="display: flex; gap: 4px; margin-bottom: 8px">
                     <input id="historySearch" placeholder="Filter by name..." oninput="renderHistory()" style="
-              flex: 1;
-              background: white;
-              font-size: 12px;
-              padding: 6px 10px;
-              border: 1px solid var(--border);
-              border-radius: 4px;
-            " />
+                flex: 1;
+                background: white;
+                font-size: 12px;
+                padding: 6px 10px;
+                border: 1px solid var(--border);
+                border-radius: 4px;
+              " />
                     <select id="historyStatusFilter" onchange="renderHistory()" style="
-              font-size: 11px;
-              border: 1px solid var(--border);
-              border-radius: 4px;
-              padding: 0 4px;
-              background: white;
-              font-weight: 600;
-              cursor: pointer;
-            ">
+                font-size: 11px;
+                border: 1px solid var(--border);
+                border-radius: 4px;
+                padding: 0 4px;
+                background: white;
+                font-weight: 600;
+                cursor: pointer;
+              ">
                         <option value="All">All Status</option>
                         <option value="Received">🔵 Received</option>
                         <option value="Processing">🟡 Processing</option>
@@ -1138,8 +1129,9 @@
 
                 <div class="receipt-totals">
                     <div><span>Subtotal:</span> <span id="p-subtotal">₦0.00</span></div>
-                    <div id="p-old-balance-row" style="display: none;"><span>Old Balance:</span> <span
-                            id="p-old-balance">₦0.00</span></div>
+                    <div id="p-old-balance-row" style="display: none">
+                        <span>Old Balance:</span> <span id="p-old-balance">₦0.00</span>
+                    </div>
                     <div style="
                 font-weight: 700;
                 font-size: 13px;
@@ -1149,22 +1141,22 @@
               ">
                         <span>TOTAL:</span> <span id="p-total">₦0.00</span>
                     </div>
-                    <div style="font-size: 10px; margin-top: 4px;">
+                    <div style="font-size: 10px; margin-top: 4px">
                         <span>Paid:</span> <span id="p-paid">₦0.00</span>
                     </div>
-                    <div style="font-style: italic; font-size: 10px; font-weight: 700;">
+                    <div style="font-style: italic; font-size: 10px; font-weight: 700">
                         Balance: <span id="p-due">₦0.00</span>
                     </div>
-                    <div style="font-size: 9px; margin-top: 2px; color: #666;">
+                    <div style="font-size: 9px; margin-top: 2px; color: #666">
                         Status: <span id="p-pay-status">Not Paid</span>
                     </div>
                 </div>
 
                 <div class="divider"></div>
-                <div id="p-bank-details" style="font-size: 10px; margin-top: 5px; display: none;">
-                    <strong>PAYMENT DETAILS:</strong><br>
-                    <span id="p-bank-name"></span><br>
-                    <span id="p-account-number"></span><br>
+                <div id="p-bank-details" style="font-size: 10px; margin-top: 5px; display: none">
+                    <strong>PAYMENT DETAILS:</strong><br />
+                    <span id="p-bank-name"></span><br />
+                    <span id="p-account-number"></span><br />
                     <span id="p-account-name"></span>
                 </div>
                 <div class="divider"></div>
@@ -1174,16 +1166,20 @@
                 <div class="center" style="font-size: 9px; margin-top: 10px">
                     Thanks for choosing <span id="p-footer-biz">our business</span>!
                 </div>
-                <div style="text-align: right; font-size: 7px; color: #999; margin-top: 10px;">
+                <div style="
+              text-align: right;
+              font-size: 7px;
+              color: #999;
+              margin-top: 10px;
+            ">
                     app developed by OG 08105781658
                 </div>
             </div>
         </div>
-
     </main>
 
     <!-- Sales Dashboard -->
-    <div class="analytics-box" id="analyticsBox" style="gap: 12px; padding: 12px 24px;">
+    <div class="analytics-box" id="analyticsBox" style="gap: 12px; padding: 12px 24px">
         <div class="stat-item">
             <div class="stat-label">Today's Revenue</div>
             <div class="stat-value" id="statDaily">₦0.00</div>
@@ -1196,7 +1192,9 @@
         <div style="width: 1px; background: rgba(255, 255, 255, 0.1)"></div>
         <div class="stat-item">
             <div class="stat-label">Unpaid Balance</div>
-            <div class="stat-value" id="statUnpaidDebt" style="color: #fda4af;">₦0.00</div>
+            <div class="stat-value" id="statUnpaidDebt" style="color: #fda4af">
+                ₦0.00
+            </div>
         </div>
         <button onclick="document.getElementById('analyticsBox').style.display = 'none'" class="btn-icon"
             style="color: #94a3b8; margin-left: 10px">
@@ -1302,9 +1300,14 @@
                         style="font-size: 11px; color: #ef4444; border-color: #fee2e2">
                         <i data-lucide="trash-2" style="width: 14px"></i> Clear History
                     </button>
-                    <button class="secondary" onclick="testRegistryConnection()"
-                        style="font-size: 11px; grid-column: span 2; margin-top: 5px; border-style: dashed;">
-                        <i data-lucide="wifi" style="width: 14px"></i> Test Registry Connection
+                    <button class="secondary" onclick="testRegistryConnection()" style="
+                font-size: 11px;
+                grid-column: span 2;
+                margin-top: 5px;
+                border-style: dashed;
+              ">
+                        <i data-lucide="wifi" style="width: 14px"></i> Test Registry
+                        Connection
                     </button>
                 </div>
             </div>
@@ -1317,32 +1320,59 @@
 
     <!-- Customer Directory Overlay -->
     <div id="customerOverlay" class="setup-overlay">
-        <div class="setup-card" style="max-width: 600px; width: 95%;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+        <div class="setup-card" style="max-width: 600px; width: 95%">
+            <div style="
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+          ">
                 <div>
-                    <h2><i data-lucide="contact" style="color: var(--primary);"></i> Customer Directory</h2>
+                    <h2>
+                        <i data-lucide="contact" style="color: var(--primary)"></i>
+                        Customer Directory
+                    </h2>
                     <p>Manage and track your customer relationships.</p>
                 </div>
                 <button onclick="closeCustomerDirectory()" class="btn-icon">
-                    <i data-lucide="x" style="width: 24px;"></i>
+                    <i data-lucide="x" style="width: 24px"></i>
                 </button>
             </div>
 
-            <div style="margin-bottom: 16px;">
+            <div style="margin-bottom: 16px">
                 <input id="customerSearch" placeholder="Search by name or phone..." oninput="renderCustomerList()"
-                    style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
+                    style="
+              width: 100%;
+              padding: 10px;
+              border-radius: 8px;
+              border: 1px solid var(--border);
+            " />
             </div>
 
-            <div id="customerList"
-                style="max-height: 50vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+            <div id="customerList" style="
+            max-height: 50vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+          ">
                 <!-- JS will inject customers here -->
             </div>
 
-            <div id="customerDetailView"
-                style="display: none; border-top: 1px solid var(--border); margin-top: 20px; padding-top: 20px;">
-                <button onclick="backToCustomerList()" class="btn-icon"
-                    style="margin-bottom: 10px; font-size: 12px; display: flex; align-items: center; gap: 4px;">
-                    <i data-lucide="arrow-left" style="width: 14px;"></i> Back to List
+            <div id="customerDetailView" style="
+            display: none;
+            border-top: 1px solid var(--border);
+            margin-top: 20px;
+            padding-top: 20px;
+          ">
+                <button onclick="backToCustomerList()" class="btn-icon" style="
+              margin-bottom: 10px;
+              font-size: 12px;
+              display: flex;
+              align-items: center;
+              gap: 4px;
+            ">
+                    <i data-lucide="arrow-left" style="width: 14px"></i> Back to List
                 </button>
                 <div id="customerDetailContent"></div>
             </div>
@@ -1351,39 +1381,73 @@
 
     <!-- Analytics Overlay -->
     <div id="analyticsOverlay" class="setup-overlay">
-        <div class="setup-card" style="max-width: 800px; width: 95%;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+        <div class="setup-card" style="max-width: 800px; width: 95%">
+            <div style="
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+          ">
                 <div>
-                    <h2><i data-lucide="bar-chart-2" style="color: var(--primary);"></i> Business Analytics</h2>
+                    <h2>
+                        <i data-lucide="bar-chart-2" style="color: var(--primary)"></i>
+                        Business Analytics
+                    </h2>
                     <p>Performance insights and trends for your business.</p>
                 </div>
                 <button onclick="closeAnalytics()" class="btn-icon">
-                    <i data-lucide="x" style="width: 24px;"></i>
+                    <i data-lucide="x" style="width: 24px"></i>
                 </button>
             </div>
 
-            <div style="display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 8px;">
-                <button id="tab-day" class="tag-btn analytics-tab active"
-                    onclick="switchAnalyticsTab('day')">Today</button>
-                <button id="tab-week" class="tag-btn analytics-tab" onclick="switchAnalyticsTab('week')">This
-                    Week</button>
-                <button id="tab-month" class="tag-btn analytics-tab" onclick="switchAnalyticsTab('month')">This
-                    Month</button>
-                <button id="tab-year" class="tag-btn analytics-tab" onclick="switchAnalyticsTab('year')">This
-                    Year</button>
+            <div style="
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+          ">
+                <button id="tab-day" class="tag-btn analytics-tab active" onclick="switchAnalyticsTab('day')">
+                    Today
+                </button>
+                <button id="tab-week" class="tag-btn analytics-tab" onclick="switchAnalyticsTab('week')">
+                    This Week
+                </button>
+                <button id="tab-month" class="tag-btn analytics-tab" onclick="switchAnalyticsTab('month')">
+                    This Month
+                </button>
+                <button id="tab-year" class="tag-btn analytics-tab" onclick="switchAnalyticsTab('year')">
+                    This Year
+                </button>
             </div>
 
-            <div id="analyticsContent"
-                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <div id="analyticsContent" style="
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+          ">
                 <!-- JS will inject stats here -->
             </div>
 
-            <div style="background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid var(--border);">
-                <h3
-                    style="font-size: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: var(--text-main);">
-                    <i data-lucide="line-chart" style="width: 16px;"></i> Revenue Trend (Last 7 Days)
+            <div style="
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+          ">
+                <h3 style="
+              font-size: 14px;
+              margin-bottom: 12px;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              color: var(--text-main);
+            ">
+                    <i data-lucide="line-chart" style="width: 16px"></i> Revenue Trend
+                    (Last 7 Days)
                 </h3>
-                <div style="height: 180px; position: relative;">
+                <div style="height: 180px; position: relative">
                     <canvas id="revenueChartModal"></canvas>
                 </div>
             </div>
@@ -1433,21 +1497,37 @@
     </div>
     <!-- Balance Prompt Overlay -->
     <div id="balanceOverlay" class="setup-overlay">
-        <div class="setup-card" style="max-width: 350px; text-align: center;">
-            <div style="margin-bottom: 20px;">
-                <div
-                    style="background: #fff1f2; color: #e11d48; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; border: 4px solid #ffe4e6;">
-                    <i data-lucide="alert-circle" style="width: 32px; height: 32px;"></i>
+        <div class="setup-card" style="max-width: 350px; text-align: center">
+            <div style="margin-bottom: 20px">
+                <div style="
+              background: #fff1f2;
+              color: #e11d48;
+              width: 64px;
+              height: 64px;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              margin: 0 auto 16px;
+              border: 4px solid #ffe4e6;
+            ">
+                    <i data-lucide="alert-circle" style="width: 32px; height: 32px"></i>
                 </div>
-                <h2 style="justify-content: center; font-size: 20px;">Unpaid Balance!</h2>
-                <p id="balancePromptText" style="font-size: 14px; color: var(--text-muted); margin-bottom: 0;">This
-                    customer has an outstanding balance of ₦0.00.</p>
+                <h2 style="justify-content: center; font-size: 20px">
+                    Unpaid Balance!
+                </h2>
+                <p id="balancePromptText" style="font-size: 14px; color: var(--text-muted); margin-bottom: 0">
+                    This customer has an outstanding balance of ₦0.00.
+                </p>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                <button class="secondary" onclick="resolveBalancePrompt(false)"
-                    style="height: 44px; font-weight: 700;">SKIP</button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+                <button class="secondary" onclick="resolveBalancePrompt(false)" style="height: 44px; font-weight: 700">
+                    SKIP
+                </button>
                 <button class="primary" onclick="resolveBalancePrompt(true)"
-                    style="height: 44px; background: #e11d48; font-weight: 700;">ADD IT</button>
+                    style="height: 44px; background: #e11d48; font-weight: 700">
+                    ADD IT
+                </button>
             </div>
         </div>
     </div>
@@ -1471,8 +1551,10 @@
 
         // --- Creator Registry Configuration ---
         // Replace the URL below with your Google Script or Webhook URL to track all businesses using your app
-        const CREATOR_REGISTRY_URL = "https://script.google.com/macros/s/AKfycbwquXfplGacO_Bqwf2NNIuPq5M_Upwa9TxHgV6Ef3KzadNqbuCmlD4U7wJ9C5bUptYz5g/exec";
-        const registryStatusKey = "AKfycbwquXfplGacO_Bqwf2NNIuPq5M_Upwa9TxHgV6Ef3KzadNqbuCmlD4U7wJ9C5bUptYz5g";
+        const CREATOR_REGISTRY_URL =
+            "https://script.google.com/macros/s/AKfycbwquXfplGacO_Bqwf2NNIuPq5M_Upwa9TxHgV6Ef3KzadNqbuCmlD4U7wJ9C5bUptYz5g/exec";
+        const registryStatusKey =
+            "AKfycbwquXfplGacO_Bqwf2NNIuPq5M_Upwa9TxHgV6Ef3KzadNqbuCmlD4U7wJ9C5bUptYz5g";
 
         const commonServices = [
             { name: "Shirt", price: 700 },
@@ -1491,17 +1573,23 @@
 
         function init() {
             if ("serviceWorker" in navigator) {
-                navigator.serviceWorker.register("sw.js").then(reg => {
-                    reg.onupdatefound = () => {
-                        const installingWorker = reg.installing;
-                        installingWorker.onstatechange = () => {
-                            if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                showToast("New Update! Reloading...");
-                                setTimeout(() => window.location.reload(), 1500);
-                            }
+                navigator.serviceWorker
+                    .register("sw.js")
+                    .then((reg) => {
+                        reg.onupdatefound = () => {
+                            const installingWorker = reg.installing;
+                            installingWorker.onstatechange = () => {
+                                if (
+                                    installingWorker.state === "installed" &&
+                                    navigator.serviceWorker.controller
+                                ) {
+                                    showToast("New Update! Reloading...");
+                                    setTimeout(() => window.location.reload(), 1500);
+                                }
+                            };
                         };
-                    };
-                }).catch((e) => { });
+                    })
+                    .catch((e) => { });
             }
             const now = new Date();
             if ($("date"))
@@ -1572,8 +1660,10 @@
             if (config.bankName && config.accountNumber) {
                 if ($("p-bank-details")) $("p-bank-details").style.display = "block";
                 if ($("p-bank-name")) $("p-bank-name").innerText = config.bankName;
-                if ($("p-account-number")) $("p-account-number").innerText = config.accountNumber;
-                if ($("p-account-name")) $("p-account-name").innerText = config.accountName || "";
+                if ($("p-account-number"))
+                    $("p-account-number").innerText = config.accountNumber;
+                if ($("p-account-name"))
+                    $("p-account-name").innerText = config.accountName || "";
             } else {
                 if ($("p-bank-details")) $("p-bank-details").style.display = "none";
             }
@@ -1602,14 +1692,16 @@
             if ($("setup-phone")) $("setup-phone").value = config.phone || "";
             if ($("setup-admin-pin"))
                 $("setup-admin-pin").value = config.adminPin || "0000";
-            if ($("setup-bank-name")) $("setup-bank-name").value = config.bankName || "";
-            if ($("setup-account-number")) $("setup-account-number").value = config.accountNumber || "";
-            if ($("setup-account-name")) $("setup-account-name").value = config.accountName || "";
+            if ($("setup-bank-name"))
+                $("setup-bank-name").value = config.bankName || "";
+            if ($("setup-account-number"))
+                $("setup-account-number").value = config.accountNumber || "";
+            if ($("setup-account-name"))
+                $("setup-account-name").value = config.accountName || "";
             if ($("setupOverlay")) $("setupOverlay").style.display = "flex";
         }
 
         let revenueChartModalInstance = null;
-
 
         function hideSetup() {
             if ($("setupOverlay")) $("setupOverlay").style.display = "none";
@@ -1641,7 +1733,8 @@
                 // Generate a unique System ID if it doesn't exist to track this specific Installation
                 let systemId = localStorage.getItem("pos_system_id");
                 if (!systemId) {
-                    systemId = 'LB-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+                    systemId =
+                        "LB-" + Math.random().toString(36).substr(2, 9).toUpperCase();
                     localStorage.setItem("pos_system_id", systemId);
                 }
 
@@ -1651,24 +1744,25 @@
                     address: config.address,
                     phone: config.phone,
                     timestamp: new Date().toISOString(),
-                    version: "v37"
+                    version: "v37",
                 };
 
                 console.log("Registering business with creator...", registryData);
 
                 // This sends the business details to the creator's central server/spreadsheet
-                // If you don't have a server, you can use a Google Form tool or a Webhook
-                if (CREATOR_REGISTRY_URL.includes("your-central-registry")) return;
+                if (!CREATOR_REGISTRY_URL || CREATOR_REGISTRY_URL.includes("your-central-registry")) return;
 
                 await fetch(CREATOR_REGISTRY_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(registryData)
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify(registryData),
                 });
 
                 localStorage.setItem(registryStatusKey, "registered_v37");
             } catch (err) {
-                console.warn("Registry sync failed (likely offline). Will retry on next save.");
+                console.warn(
+                    "Registry sync failed (likely offline). Will retry on next save.",
+                );
             }
         }
 
@@ -1807,7 +1901,8 @@
             editingOrderId = null; // Clear edit mode
             carriedBalance = 0;
             currentPromptedCustomer = "";
-            if ($("p-old-balance-row")) $("p-old-balance-row").style.display = "none";
+            if ($("p-old-balance-row"))
+                $("p-old-balance-row").style.display = "none";
             addItem();
             calculate();
         }
@@ -1865,27 +1960,43 @@
             if ($("p-subtotal")) $("p-subtotal").innerText = f;
 
             const totalWithCarried = s + carriedBalance;
-            const ft = "₦" + totalWithCarried.toLocaleString(undefined, { minimumFractionDigits: 2 });
+            const ft =
+                "₦" +
+                totalWithCarried.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                });
             if ($("p-total")) $("p-total").innerText = ft;
 
             if ($("p-old-balance-row")) {
                 if (carriedBalance > 0) {
                     $("p-old-balance-row").style.display = "flex";
                     $("p-old-balance-row").style.justifyContent = "space-between";
-                    $("p-old-balance").innerText = "₦" + carriedBalance.toLocaleString(undefined, { minimumFractionDigits: 2 });
+                    $("p-old-balance").innerText =
+                        "₦" +
+                        carriedBalance.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                        });
                 } else {
                     $("p-old-balance-row").style.display = "none";
                 }
             }
 
-            const pStatus = $("paymentStatus") ? $("paymentStatus").value : "Not Paid";
+            const pStatus = $("paymentStatus")
+                ? $("paymentStatus").value
+                : "Not Paid";
             if (pStatus === "Paid") {
                 $("amountPaid").value = totalWithCarried;
             }
-            const amtPaid = parseFloat($("amountPaid") ? $("amountPaid").value : 0) || 0;
+            const amtPaid =
+                parseFloat($("amountPaid") ? $("amountPaid").value : 0) || 0;
             const balance = totalWithCarried - amtPaid;
-            const fb = "₦" + (balance > 0 ? balance : 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
-            const fp = "₦" + amtPaid.toLocaleString(undefined, { minimumFractionDigits: 2 });
+            const fb =
+                "₦" +
+                (balance > 0 ? balance : 0).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                });
+            const fp =
+                "₦" + amtPaid.toLocaleString(undefined, { minimumFractionDigits: 2 });
 
             if ($("p-paid")) $("p-paid").innerText = fp;
             if ($("p-due")) $("p-due").innerText = fb;
@@ -1917,6 +2028,7 @@
                     });
             });
 
+            const statusEl = $("orderStatus");
             const active = localStorage.getItem(activeStaffKey) || "Admin";
             const record = {
                 id: editingOrderId || Date.now(),
@@ -1926,19 +2038,20 @@
                 total: $("p-total").innerText,
                 items: items,
                 staff: active,
-                status: $("orderStatus").value,
+                status: statusEl ? statusEl.value : "Received",
                 paymentStatus: $("paymentStatus").value,
                 amountPaid: $("amountPaid").value || 0,
-                carriedBalance: carriedBalance
+                carriedBalance: carriedBalance,
             };
 
             const h = JSON.parse(localStorage.getItem(historyKey) || "[]");
 
             // If there is a carried balance, mark previous unpaid orders for this customer as forwarded
             if (!editingOrderId && carriedBalance > 0) {
-                h.forEach(oldOrder => {
+                h.forEach((oldOrder) => {
                     if (oldOrder.customer.toLowerCase() === n.toLowerCase()) {
-                        const totalVal = parseFloat(oldOrder.total.replace(/[₦,]/g, "")) || 0;
+                        const totalVal =
+                            parseFloat(oldOrder.total.replace(/[₦,]/g, "")) || 0;
                         const paidVal = parseFloat(oldOrder.amountPaid || 0) || 0;
                         if (totalVal - paidVal > 0.01) {
                             oldOrder.paymentStatus = "Forwarded";
@@ -1999,7 +2112,7 @@
 
                 // Revenue only counts new sales, not the debt carried forward
                 if (r.date.includes(todayStr)) {
-                    dailyTotal += (totalVal - cb);
+                    dailyTotal += totalVal - cb;
                 }
 
                 if (r.status === "Ready") pendingCollection++;
@@ -2013,11 +2126,12 @@
             const fmt = (v) =>
                 "₦" + v.toLocaleString(undefined, { minimumFractionDigits: 0 });
 
-            if ($("dailyTotal"))
-                $("dailyTotal").innerText = fmt(dailyTotal);
+            if ($("dailyTotal")) $("dailyTotal").innerText = fmt(dailyTotal);
             if ($("statDaily")) $("statDaily").innerText = fmt(dailyTotal);
-            if ($("statPendingCount")) $("statPendingCount").innerText = pendingCollection;
-            if ($("statUnpaidDebt")) $("statUnpaidDebt").innerText = fmt(netUnpaidDebt);
+            if ($("statPendingCount"))
+                $("statPendingCount").innerText = pendingCollection;
+            if ($("statUnpaidDebt"))
+                $("statUnpaidDebt").innerText = fmt(netUnpaidDebt);
         }
 
         function renderHistory() {
@@ -2050,11 +2164,14 @@
                 const statusClass = "status-" + status.toLowerCase();
                 const pStatusClass = "pay-" + pStatus.replace(" ", "").toLowerCase();
                 const activeUser = localStorage.getItem(activeStaffKey) || "Admin";
-                const deleteBtn = activeUser === "Admin" ? `
+                const deleteBtn =
+                    activeUser === "Admin"
+                        ? `
                     <button class="btn-icon" onclick="deleteOrder(${x.id}, event)" style="margin-top: 4px; padding: 2px; height: auto;">
                         <i data-lucide="trash-2" style="width: 11px; color: #ef4444"></i>
                     </button>
-                ` : "";
+                `
+                        : "";
 
                 d.innerHTML = `
                         <div class="meta" style="flex: 1">
@@ -2067,13 +2184,13 @@
                                 <select class="badge ${statusClass}" 
                                     onchange="updateStatusFast(${x.id}, this.value, event)" 
                                     onclick="event.stopPropagation()" style="font-size: 9px; padding-top: 1px; padding-bottom: 1px;">
-                                    <option value="Received" ${status === 'Received' ? 'selected' : ''}>Received</option>
-                                    <option value="Processing" ${status === 'Processing' ? 'selected' : ''}>Processing</option>
-                                    <option value="Ready" ${status === 'Ready' ? 'selected' : ''}>Ready</option>
-                                    <option value="Collected" ${status === 'Collected' ? 'selected' : ''}>Collected</option>
+                                    <option value="Received" ${status === "Received" ? "selected" : ""}>Received</option>
+                                    <option value="Processing" ${status === "Processing" ? "selected" : ""}>Processing</option>
+                                    <option value="Ready" ${status === "Ready" ? "selected" : ""}>Ready</option>
+                                    <option value="Collected" ${status === "Collected" ? "selected" : ""}>Collected</option>
                                 </select>
                                 <span class="badge ${pStatusClass}" style="font-size: 9px; padding-top: 2px; padding-bottom: 2px;">
-                                    ${pStatus === 'Paid' ? 'Paid' : (pStatus === 'Forwarded' ? 'Forwarded' : 'Unpaid')}
+                                    ${pStatus === "Paid" ? "Paid" : pStatus === "Forwarded" ? "Forwarded" : "Unpaid"}
                                 </span>
                                 ${deleteBtn}
                             </div>
@@ -2105,7 +2222,8 @@
             $("phone").value = x.phone;
             $("date").value = x.date;
             if ($("orderStatus")) $("orderStatus").value = x.status || "Received";
-            if ($("paymentStatus")) $("paymentStatus").value = x.paymentStatus || "Not Paid";
+            if ($("paymentStatus"))
+                $("paymentStatus").value = x.paymentStatus || "Not Paid";
             if ($("amountPaid")) $("amountPaid").value = x.amountPaid || 0;
             carriedBalance = x.carriedBalance || 0;
             currentPromptedCustomer = x.customer; // Don't prompt again for this one
@@ -2134,7 +2252,7 @@
                     if (r.date && r.date.includes(full)) {
                         const t = parseFloat(r.total.replace(/[₦,]/g, "")) || 0;
                         const cb = parseFloat(r.carriedBalance || 0) || 0;
-                        daySum += (t - cb);
+                        daySum += t - cb;
                     }
                 });
                 dataArr.push(daySum);
@@ -2192,13 +2310,16 @@
                 badge.style.display = "none";
                 carriedBalance = 0;
                 currentPromptedCustomer = "";
-                if ($("p-old-balance-row")) $("p-old-balance-row").style.display = "none";
+                if ($("p-old-balance-row"))
+                    $("p-old-balance-row").style.display = "none";
                 calculate();
                 return;
             }
 
             const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
-            const customerRecord = history.find(h => h.customer.toLowerCase() === n.toLowerCase());
+            const customerRecord = history.find(
+                (h) => h.customer.toLowerCase() === n.toLowerCase(),
+            );
 
             // Auto-fill phone if match found and phone field is empty
             if (customerRecord && customerRecord.phone && !$("phone").value) {
@@ -2206,28 +2327,36 @@
             }
 
             // Check for balance if this is a brand new customer entry (not in edit mode)
-            if (!editingOrderId && n.toLowerCase() !== currentPromptedCustomer.toLowerCase()) {
-                const customersInHistory = history.filter(h => h.customer.toLowerCase() === n.toLowerCase());
+            if (
+                !editingOrderId &&
+                n.toLowerCase() !== currentPromptedCustomer.toLowerCase()
+            ) {
+                const customersInHistory = history.filter(
+                    (h) => h.customer.toLowerCase() === n.toLowerCase(),
+                );
                 if (customersInHistory.length > 0) {
                     let totalDebt = 0;
                     let totalCarried = 0;
-                    customersInHistory.forEach(r => {
-                        const t = parseFloat(r.total.replace(/[₦,]/g, '')) || 0;
+                    customersInHistory.forEach((r) => {
+                        const t = parseFloat(r.total.replace(/[₦,]/g, "")) || 0;
                         const p = parseFloat(r.amountPaid || 0) || 0;
                         const cb = parseFloat(r.carriedBalance || 0) || 0;
-                        totalDebt += (t - p);
+                        totalDebt += t - p;
                         totalCarried += cb;
                     });
 
                     const netDebt = Math.max(0, totalDebt - totalCarried);
 
-                    if (netDebt > 1) { // Only prompt if debt is more than 1 Naira
+                    if (netDebt > 1) {
+                        // Only prompt if debt is more than 1 Naira
                         showBalancePrompt(n, netDebt);
                     }
                 }
             }
 
-            const count = history.filter(h => h.customer.toLowerCase() === n.toLowerCase()).length;
+            const count = history.filter(
+                (h) => h.customer.toLowerCase() === n.toLowerCase(),
+            ).length;
 
             if (count > 0) {
                 badge.innerText = `${count} visit${count > 1 ? "s" : ""}`;
@@ -2240,13 +2369,15 @@
 
         function showBalancePrompt(name, debt) {
             currentPromptedCustomer = name;
-            $("balancePromptText").innerHTML = `<b>${name}</b> has an outstanding balance of <b>₦${debt.toLocaleString()}</b>.`;
-            $("balanceOverlay").setAttribute('data-debt', debt);
+            $("balancePromptText").innerHTML =
+                `<b>${name}</b> has an outstanding balance of <b>₦${debt.toLocaleString()}</b>.`;
+            $("balanceOverlay").setAttribute("data-debt", debt);
             $("balanceOverlay").style.display = "flex";
         }
 
         function resolveBalancePrompt(add) {
-            const debt = parseFloat($("balanceOverlay").getAttribute('data-debt')) || 0;
+            const debt =
+                parseFloat($("balanceOverlay").getAttribute("data-debt")) || 0;
             if (add) {
                 carriedBalance = debt;
                 showToast("Balance added to invoice");
@@ -2261,7 +2392,7 @@
             const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
             // Create a unique list of customers with their phone numbers
             const customerMap = {};
-            history.forEach(h => {
+            history.forEach((h) => {
                 if (h.customer) {
                     // Store the most recent phone number for each name
                     customerMap[h.customer] = h.phone || "";
@@ -2270,10 +2401,12 @@
 
             const datalist = $("customers");
             if (datalist) {
-                datalist.innerHTML = Object.entries(customerMap).map(([name, phone]) => {
-                    const label = phone ? `${name} (${phone})` : name;
-                    return `<option value="${name}">${label}</option>`;
-                }).join("");
+                datalist.innerHTML = Object.entries(customerMap)
+                    .map(([name, phone]) => {
+                        const label = phone ? `${name} (${phone})` : name;
+                        return `<option value="${name}">${label}</option>`;
+                    })
+                    .join("");
             }
         }
         async function shareWhatsApp() {
@@ -2392,7 +2525,7 @@
         // --- Analytics Logic ---
         function openAnalytics() {
             $("analyticsOverlay").style.display = "flex";
-            switchAnalyticsTab('day');
+            switchAnalyticsTab("day");
         }
 
         function closeAnalytics() {
@@ -2400,8 +2533,10 @@
         }
 
         function switchAnalyticsTab(period) {
-            document.querySelectorAll('.analytics-tab').forEach(t => t.classList.remove('active'));
-            $("tab-" + period).classList.add('active');
+            document
+                .querySelectorAll(".analytics-tab")
+                .forEach((t) => t.classList.remove("active"));
+            $("tab-" + period).classList.add("active");
             renderAnalytics(period);
         }
 
@@ -2410,19 +2545,22 @@
             const now = new Date();
             let filtered = [];
 
-            if (period === 'day') {
+            if (period === "day") {
                 const today = now.toLocaleString("en-NG", { dateStyle: "medium" });
-                filtered = history.filter(h => h.date.includes(today));
-            } else if (period === 'week') {
+                filtered = history.filter((h) => h.date.includes(today));
+            } else if (period === "week") {
                 const oneWeekAgo = new Date();
                 oneWeekAgo.setDate(now.getDate() - 7);
-                filtered = history.filter(h => new Date(h.id) >= oneWeekAgo);
-            } else if (period === 'month') {
-                const monthStr = now.toLocaleString("en-NG", { month: "short", year: "numeric" });
-                filtered = history.filter(h => h.date.includes(monthStr));
-            } else if (period === 'year') {
+                filtered = history.filter((h) => new Date(h.id) >= oneWeekAgo);
+            } else if (period === "month") {
+                const monthStr = now.toLocaleString("en-NG", {
+                    month: "short",
+                    year: "numeric",
+                });
+                filtered = history.filter((h) => h.date.includes(monthStr));
+            } else if (period === "year") {
                 const yearStr = now.getFullYear().toString();
-                filtered = history.filter(h => h.date.includes(yearStr));
+                filtered = history.filter((h) => h.date.includes(yearStr));
             }
 
             // Calculations
@@ -2436,30 +2574,39 @@
             const serviceCounts = {};
             let uniqueCustomers = new Set();
 
-            filtered.forEach(h => {
-                const total = (parseFloat(h.total.replace(/[₦,]/g, "")) || 0);
-                const cb = (parseFloat(h.carriedBalance || 0) || 0);
-                const paid = (parseFloat(h.amountPaid || 0) || 0);
+            filtered.forEach((h) => {
+                const total = parseFloat(h.total.replace(/[₦,]/g, "")) || 0;
+                const cb = parseFloat(h.carriedBalance || 0) || 0;
+                const paid = parseFloat(h.amountPaid || 0) || 0;
 
                 const newSale = total - cb;
                 totalRevenue += newSale;
-                totalIncurredDebt += (total - paid);
+                totalIncurredDebt += total - paid;
                 totalCarriedForward += cb;
 
                 if (h.status === "Ready") pendingItems++;
 
                 uniqueCustomers.add(h.customer);
-                customerCounts[h.customer] = (customerCounts[h.customer] || 0) + newSale;
+                customerCounts[h.customer] =
+                    (customerCounts[h.customer] || 0) + newSale;
 
-                h.items.forEach(item => {
-                    serviceCounts[item.name] = (serviceCounts[item.name] || 0) + parseInt(item.qty);
+                h.items.forEach((item) => {
+                    serviceCounts[item.name] =
+                        (serviceCounts[item.name] || 0) + parseInt(item.qty);
                 });
             });
 
-            const netPeriodDebt = Math.max(0, totalIncurredDebt - totalCarriedForward);
+            const netPeriodDebt = Math.max(
+                0,
+                totalIncurredDebt - totalCarriedForward,
+            );
 
-            const topCustomer = Object.entries(customerCounts).sort((a, b) => b[1] - a[1])[0] || ["None", 0];
-            const topServices = Object.entries(serviceCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            const topCustomer = Object.entries(customerCounts).sort(
+                (a, b) => b[1] - a[1],
+            )[0] || ["None", 0];
+            const topServices = Object.entries(serviceCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
 
             const content = $("analyticsContent");
             content.innerHTML = `
@@ -2491,12 +2638,18 @@
                 <div class="analytics-grid-card" style="grid-column: span 2;">
                     <div class="lbl">Most Requested Services</div>
                     <div style="margin-top: 8px;">
-                        ${topServices.map(([name, count]) => `
+                        ${topServices
+                    .map(
+                        ([name, count]) => `
                             <div class="analytics-list-item">
                                 <span>${name}</span>
                                 <strong>${count} units</strong>
                             </div>
-                        `).join("") || '<div class="lbl">No data available</div>'}
+                        `,
+                    )
+                    .join("") ||
+                '<div class="lbl">No data available</div>'
+                }
                     </div>
                 </div>
             `;
@@ -2529,29 +2682,35 @@
             const searchTerm = ($("customerSearch")?.value || "").toLowerCase();
             const customersMap = {};
 
-            history.forEach(h => {
+            history.forEach((h) => {
                 const name = h.customer;
                 if (!customersMap[name]) {
                     customersMap[name] = {
                         name: name,
                         phone: h.phone || "No phone",
                         visits: 0,
-                        totalSpent: 0
+                        totalSpent: 0,
                     };
                 }
                 customersMap[name].visits++;
-                const total = (parseFloat(h.total.replace(/[₦,]/g, "")) || 0);
-                const cb = (parseFloat(h.carriedBalance || 0) || 0);
-                customersMap[name].totalSpent += (total - cb);
+                const total = parseFloat(h.total.replace(/[₦,]/g, "")) || 0;
+                const cb = parseFloat(h.carriedBalance || 0) || 0;
+                customersMap[name].totalSpent += total - cb;
             });
 
-            const customers = Object.values(customersMap).filter(c =>
-                c.name.toLowerCase().includes(searchTerm) ||
-                c.phone.includes(searchTerm)
-            ).sort((a, b) => b.totalSpent - a.totalSpent);
+            const customers = Object.values(customersMap)
+                .filter(
+                    (c) =>
+                        c.name.toLowerCase().includes(searchTerm) ||
+                        c.phone.includes(searchTerm),
+                )
+                .sort((a, b) => b.totalSpent - a.totalSpent);
 
             const list = $("customerList");
-            list.innerHTML = customers.map(c => `
+            list.innerHTML =
+                customers
+                    .map(
+                        (c) => `
                 <div class="history-card" onclick="viewCustomerDetails('${c.name.replace(/'/g, "\\'")}')">
                     <div class="meta">
                         <strong>${c.name}</strong><br>
@@ -2559,20 +2718,25 @@
                     </div>
                     <div style="text-align: right;">
                         <div class="total">₦${c.totalSpent.toLocaleString()}</div>
-                        <span class="badge">${c.visits} visit${c.visits > 1 ? 's' : ''}</span>
+                        <span class="badge">${c.visits} visit${c.visits > 1 ? "s" : ""}</span>
                     </div>
                 </div>
-            `).join("") || '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No customers found.</div>';
+            `,
+                    )
+                    .join("") ||
+                '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No customers found.</div>';
 
             if (window.lucide) lucide.createIcons();
         }
 
         function viewCustomerDetails(name) {
             const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
-            const customerHistory = history.filter(h => h.customer === name).reverse();
+            const customerHistory = history
+                .filter((h) => h.customer === name)
+                .reverse();
             const totalSpent = customerHistory.reduce((acc, h) => {
-                const total = (parseFloat(h.total.replace(/[₦,]/g, "")) || 0);
-                const cb = (parseFloat(h.carriedBalance || 0) || 0);
+                const total = parseFloat(h.total.replace(/[₦,]/g, "")) || 0;
+                const cb = parseFloat(h.carriedBalance || 0) || 0;
                 return acc + (total - cb);
             }, 0);
             const phone = customerHistory[0].phone || "No phone recorded";
@@ -2592,7 +2756,7 @@
                         </div>
                         <div class="analytics-grid-card" style="flex: 1; padding: 10px;">
                             <div class="lbl">Visits</div>
-                            <div class="val" style="font-size: 16px;">${customerHistory.filter(h => !h.isPaymentOnly).length}</div>
+                            <div class="val" style="font-size: 16px;">${customerHistory.filter((h) => !h.isPaymentOnly).length}</div>
                         </div>
                     </div>
                 </div>
@@ -2613,29 +2777,36 @@
 
                 <div class="section-title">Visit History</div>
                 <div style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto;">
-                    ${customerHistory.map(h => `
+                    ${customerHistory
+                    .map(
+                        (h) => `
                         <div class="history-card" style="cursor: default;">
                             <div class="meta">
                                 <strong>${h.date}</strong><br>
-                                <small>${h.items.map(i => i.name).join(", ")}</small>
+                                <small>${h.items.map((i) => i.name).join(", ")}</small>
                             </div>
                         <div style="text-align: right;">
-                            <div class="total">${h.isPaymentOnly ? '- ₦' + parseFloat(h.amountPaid).toLocaleString() : h.total}</div>
+                            <div class="total">${h.isPaymentOnly ? "- ₦" + parseFloat(h.amountPaid).toLocaleString() : h.total}</div>
                             <div style="display: flex; gap: 4px; justify-content: flex-end; align-items: center; margin-top: 4px;">
-                                <span class="badge ${'status-' + (h.status || 'Received').toLowerCase()}" style="font-size: 9px;">${h.isPaymentOnly ? 'Payment' : (h.status || 'Received')}</span>
-                                ${h.isPaymentOnly ? '' : `
-                                <select class="badge ${'pay-' + (h.paymentStatus || 'Not Paid').replace(' ', '').toLowerCase()}" 
+                                <span class="badge ${"status-" + (h.status || "Received").toLowerCase()}" style="font-size: 9px;">${h.isPaymentOnly ? "Payment" : h.status || "Received"}</span>
+                                ${h.isPaymentOnly
+                                ? ""
+                                : `
+                                <select class="badge ${"pay-" + (h.paymentStatus || "Not Paid").replace(" ", "").toLowerCase()}" 
                                     onchange="updatePaymentStatusFast(${h.id}, this.value, event); viewCustomerDetails('${name.replace(/'/g, "\\'")}')" 
                                     onclick="event.stopPropagation()" style="font-size: 9px; padding-top: 1px; padding-bottom: 1px;">
-                                    <option value="Not Paid" ${(h.paymentStatus || 'Not Paid') === 'Not Paid' ? 'selected' : ''}>Unpaid</option>
-                                    <option value="Paid" ${h.paymentStatus === 'Paid' ? 'selected' : ''}>Paid</option>
-                                    <option value="Forwarded" ${h.paymentStatus === 'Forwarded' ? 'selected' : ''}>Forwarded</option>
+                                    <option value="Not Paid" ${(h.paymentStatus || "Not Paid") === "Not Paid" ? "selected" : ""}>Unpaid</option>
+                                    <option value="Paid" ${h.paymentStatus === "Paid" ? "selected" : ""}>Paid</option>
+                                    <option value="Forwarded" ${h.paymentStatus === "Forwarded" ? "selected" : ""}>Forwarded</option>
                                 </select>
-                                `}
+                                `
+                            }
                             </div>
                         </div>
                     </div>
-                `).join("")}
+                `,
+                    )
+                    .join("")}
                 </div>
             `;
             if (window.lucide) lucide.createIcons();
@@ -2665,11 +2836,11 @@
                 paymentStatus: "Paid",
                 amountPaid: amt,
                 carriedBalance: 0,
-                isPaymentOnly: true
+                isPaymentOnly: true,
             };
 
             const h = JSON.parse(localStorage.getItem(historyKey) || "[]");
-            const lastRec = h.find(r => r.customer === name && r.phone);
+            const lastRec = h.find((r) => r.customer === name && r.phone);
             if (lastRec) record.phone = lastRec.phone;
 
             h.push(record);
@@ -2687,7 +2858,7 @@
         function updateStatusFast(id, newStatus, event) {
             if (event) event.stopPropagation();
             const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
-            const idx = history.findIndex(x => x.id == id);
+            const idx = history.findIndex((x) => x.id == id);
             if (idx !== -1) {
                 history[idx].status = newStatus;
                 localStorage.setItem(historyKey, JSON.stringify(history));
@@ -2703,13 +2874,14 @@
         function updatePaymentStatusFast(id, newStatus, event) {
             if (event) event.stopPropagation();
             const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
-            const idx = history.findIndex(x => x.id == id);
+            const idx = history.findIndex((x) => x.id == id);
             if (idx !== -1) {
                 history[idx].paymentStatus = newStatus;
 
                 // If switching to 'Paid', auto-fill amountPaid to match total for accurate accounting
                 if (newStatus === "Paid") {
-                    const totalVal = parseFloat(history[idx].total.replace(/[₦,]/g, "")) || 0;
+                    const totalVal =
+                        parseFloat(history[idx].total.replace(/[₦,]/g, "")) || 0;
                     history[idx].amountPaid = totalVal;
                 }
 
@@ -2730,10 +2902,15 @@
                 return;
             }
 
-            if (!confirm("Are you sure you want to delete this invoice? This cannot be undone.")) return;
+            if (
+                !confirm(
+                    "Are you sure you want to delete this invoice? This cannot be undone.",
+                )
+            )
+                return;
 
             let history = JSON.parse(localStorage.getItem(historyKey) || "[]");
-            const orderToDelete = history.find(x => x.id == id);
+            const orderToDelete = history.find((x) => x.id == id);
 
             // Update loyalty count before removing from history
             if (orderToDelete) {
@@ -2745,7 +2922,7 @@
                 }
             }
 
-            history = history.filter(x => x.id != id);
+            history = history.filter((x) => x.id != id);
             localStorage.setItem(historyKey, JSON.stringify(history));
 
             if (editingOrderId == id) {
