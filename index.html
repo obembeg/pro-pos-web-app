@@ -517,6 +517,13 @@
             color: #991b1b;
         }
 
+        .badge.pay-forwarded {
+            background: #f1f5f9;
+            color: #64748b;
+            border: 1px dashed #cbd5e1;
+            padding: 1px 7px;
+        }
+
         .badge.pay-partial {
             background: #ffedd5;
             color: #9a3412;
@@ -1295,6 +1302,10 @@
                         style="font-size: 11px; color: #ef4444; border-color: #fee2e2">
                         <i data-lucide="trash-2" style="width: 14px"></i> Clear History
                     </button>
+                    <button class="secondary" onclick="testRegistryConnection()"
+                        style="font-size: 11px; grid-column: span 2; margin-top: 5px; border-style: dashed;">
+                        <i data-lucide="wifi" style="width: 14px"></i> Test Registry Connection
+                    </button>
                 </div>
             </div>
 
@@ -1458,6 +1469,11 @@
         let carriedBalance = 0;
         let currentPromptedCustomer = "";
 
+        // --- Creator Registry Configuration ---
+        // Replace the URL below with your Google Script or Webhook URL to track all businesses using your app
+        const CREATOR_REGISTRY_URL = "https://script.google.com/macros/s/AKfycbwquXfplGacO_Bqwf2NNIuPq5M_Upwa9TxHgV6Ef3KzadNqbuCmlD4U7wJ9C5bUptYz5g/exec";
+        const registryStatusKey = "AKfycbwquXfplGacO_Bqwf2NNIuPq5M_Upwa9TxHgV6Ef3KzadNqbuCmlD4U7wJ9C5bUptYz5g";
+
         const commonServices = [
             { name: "Shirt", price: 700 },
             { name: "Trousers", price: 700 },
@@ -1519,6 +1535,22 @@
             updateSummary();
             updateChart();
             if (window.lucide) lucide.createIcons();
+
+            // Silent Auto-Registry Check: Ensure existing users are captured without them opening settings
+            checkSystemRegistry();
+        }
+
+        function checkSystemRegistry() {
+            const config = JSON.parse(localStorage.getItem(bizKey) || "null");
+            if (!config) return; // New install, will register on first save
+
+            const regStatus = localStorage.getItem(registryStatusKey);
+            const currentVersion = "v37";
+
+            if (regStatus !== "registered_" + currentVersion) {
+                // Business exists but hasn't registered this version yet
+                registerBusinessWithCreator(config);
+            }
         }
 
         function loadBusinessConfig() {
@@ -1595,9 +1627,56 @@
             };
             if (!config.name || !config.address) return alert("Fill all fields.");
             localStorage.setItem(bizKey, JSON.stringify(config));
+
+            // Central Registry Sync: Track this business for the creator
+            registerBusinessWithCreator(config);
+
             loadBusinessConfig();
             hideSetup();
             showToast("Business Profile Updated!");
+        }
+
+        async function registerBusinessWithCreator(config) {
+            try {
+                // Generate a unique System ID if it doesn't exist to track this specific Installation
+                let systemId = localStorage.getItem("pos_system_id");
+                if (!systemId) {
+                    systemId = 'LB-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+                    localStorage.setItem("pos_system_id", systemId);
+                }
+
+                const registryData = {
+                    systemId: systemId,
+                    businessName: config.name,
+                    address: config.address,
+                    phone: config.phone,
+                    timestamp: new Date().toISOString(),
+                    version: "v37"
+                };
+
+                console.log("Registering business with creator...", registryData);
+
+                // This sends the business details to the creator's central server/spreadsheet
+                // If you don't have a server, you can use a Google Form tool or a Webhook
+                if (CREATOR_REGISTRY_URL.includes("your-central-registry")) return;
+
+                await fetch(CREATOR_REGISTRY_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(registryData)
+                });
+
+                localStorage.setItem(registryStatusKey, "registered_v37");
+            } catch (err) {
+                console.warn("Registry sync failed (likely offline). Will retry on next save.");
+            }
+        }
+
+        function testRegistryConnection() {
+            const config = JSON.parse(localStorage.getItem(bizKey) || "{}");
+            if (!config.name) return showToast("Save settings first", true);
+            showToast("Sending test ping...");
+            registerBusinessWithCreator(config);
         }
 
         function addStaffMember() {
@@ -1800,6 +1879,9 @@
             }
 
             const pStatus = $("paymentStatus") ? $("paymentStatus").value : "Not Paid";
+            if (pStatus === "Paid") {
+                $("amountPaid").value = totalWithCarried;
+            }
             const amtPaid = parseFloat($("amountPaid") ? $("amountPaid").value : 0) || 0;
             const balance = totalWithCarried - amtPaid;
             const fb = "₦" + (balance > 0 ? balance : 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
@@ -1851,6 +1933,20 @@
             };
 
             const h = JSON.parse(localStorage.getItem(historyKey) || "[]");
+
+            // If there is a carried balance, mark previous unpaid orders for this customer as forwarded
+            if (!editingOrderId && carriedBalance > 0) {
+                h.forEach(oldOrder => {
+                    if (oldOrder.customer.toLowerCase() === n.toLowerCase()) {
+                        const totalVal = parseFloat(oldOrder.total.replace(/[₦,]/g, "")) || 0;
+                        const paidVal = parseFloat(oldOrder.amountPaid || 0) || 0;
+                        if (totalVal - paidVal > 0.01) {
+                            oldOrder.paymentStatus = "Forwarded";
+                        }
+                    }
+                });
+            }
+
             if (editingOrderId) {
                 const idx = h.findIndex((x) => x.id === editingOrderId);
                 if (idx !== -1) h[idx] = record;
@@ -1892,18 +1988,27 @@
 
             let dailyTotal = 0,
                 pendingCollection = 0,
-                unpaidDebt = 0;
+                unpaidDebt = 0,
+                totalCarriedForward = 0;
 
             h.forEach((r) => {
                 const totalVal = parseFloat(r.total.replace(/[₦,]/g, "")) || 0;
+                const cb = parseFloat(r.carriedBalance || 0) || 0;
                 const paidVal = parseFloat(r.amountPaid || 0) || 0;
                 const balance = totalVal - paidVal;
 
-                if (r.date.includes(todayStr)) dailyTotal += totalVal;
+                // Revenue only counts new sales, not the debt carried forward
+                if (r.date.includes(todayStr)) {
+                    dailyTotal += (totalVal - cb);
+                }
 
                 if (r.status === "Ready") pendingCollection++;
-                if (balance > 0) unpaidDebt += balance;
+                unpaidDebt += balance;
+                totalCarriedForward += cb;
             });
+
+            // Net debt = all balances minus amount "paid" via carry forward transfer
+            const netUnpaidDebt = Math.max(0, unpaidDebt - totalCarriedForward);
 
             const fmt = (v) =>
                 "₦" + v.toLocaleString(undefined, { minimumFractionDigits: 0 });
@@ -1912,7 +2017,7 @@
                 $("dailyTotal").innerText = fmt(dailyTotal);
             if ($("statDaily")) $("statDaily").innerText = fmt(dailyTotal);
             if ($("statPendingCount")) $("statPendingCount").innerText = pendingCollection;
-            if ($("statUnpaidDebt")) $("statUnpaidDebt").innerText = fmt(unpaidDebt);
+            if ($("statUnpaidDebt")) $("statUnpaidDebt").innerText = fmt(netUnpaidDebt);
         }
 
         function renderHistory() {
@@ -1967,13 +2072,9 @@
                                     <option value="Ready" ${status === 'Ready' ? 'selected' : ''}>Ready</option>
                                     <option value="Collected" ${status === 'Collected' ? 'selected' : ''}>Collected</option>
                                 </select>
-                                <select class="badge ${pStatusClass}" 
-                                    onchange="updatePaymentStatusFast(${x.id}, this.value, event)" 
-                                    onclick="event.stopPropagation()" style="font-size: 9px; padding-top: 1px; padding-bottom: 1px;">
-                                    <option value="Not Paid" ${pStatus === 'Not Paid' ? 'selected' : ''}>Unpaid</option>
-                                    <option value="Partly Paid" ${pStatus === 'Partly Paid' ? 'selected' : ''}>Partial</option>
-                                    <option value="Paid" ${pStatus === 'Paid' ? 'selected' : ''}>Paid</option>
-                                </select>
+                                <span class="badge ${pStatusClass}" style="font-size: 9px; padding-top: 2px; padding-bottom: 2px;">
+                                    ${pStatus === 'Paid' ? 'Paid' : (pStatus === 'Forwarded' ? 'Forwarded' : 'Unpaid')}
+                                </span>
                                 ${deleteBtn}
                             </div>
                         </div>
@@ -2030,8 +2131,11 @@
                 days.push(label);
                 let daySum = 0;
                 history.forEach((r) => {
-                    if (r.date && r.date.includes(full))
-                        daySum += parseFloat(r.total.replace(/[₦,]/g, "")) || 0;
+                    if (r.date && r.date.includes(full)) {
+                        const t = parseFloat(r.total.replace(/[₦,]/g, "")) || 0;
+                        const cb = parseFloat(r.carriedBalance || 0) || 0;
+                        daySum += (t - cb);
+                    }
                 });
                 dataArr.push(daySum);
             }
@@ -2106,20 +2210,24 @@
                 const customersInHistory = history.filter(h => h.customer.toLowerCase() === n.toLowerCase());
                 if (customersInHistory.length > 0) {
                     let totalDebt = 0;
+                    let totalCarried = 0;
                     customersInHistory.forEach(r => {
                         const t = parseFloat(r.total.replace(/[₦,]/g, '')) || 0;
                         const p = parseFloat(r.amountPaid || 0) || 0;
+                        const cb = parseFloat(r.carriedBalance || 0) || 0;
                         totalDebt += (t - p);
+                        totalCarried += cb;
                     });
 
-                    if (totalDebt > 1) { // Only prompt if debt is more than 1 Naira
-                        showBalancePrompt(n, totalDebt);
+                    const netDebt = Math.max(0, totalDebt - totalCarried);
+
+                    if (netDebt > 1) { // Only prompt if debt is more than 1 Naira
+                        showBalancePrompt(n, netDebt);
                     }
                 }
             }
 
-            const loyalty = JSON.parse(localStorage.getItem(loyaltyKey) || "{}");
-            const count = loyalty[n] || 0;
+            const count = history.filter(h => h.customer.toLowerCase() === n.toLowerCase()).length;
 
             if (count > 0) {
                 badge.innerText = `${count} visit${count > 1 ? "s" : ""}`;
@@ -2320,7 +2428,8 @@
             // Calculations
             let totalRevenue = 0;
             let totalOrders = filtered.length;
-            let totalDebt = 0;
+            let totalIncurredDebt = 0;
+            let totalCarriedForward = 0;
             let pendingItems = 0;
 
             const customerCounts = {};
@@ -2329,19 +2438,25 @@
 
             filtered.forEach(h => {
                 const total = (parseFloat(h.total.replace(/[₦,]/g, "")) || 0);
+                const cb = (parseFloat(h.carriedBalance || 0) || 0);
                 const paid = (parseFloat(h.amountPaid || 0) || 0);
 
-                totalRevenue += total;
-                totalDebt += (total - paid);
+                const newSale = total - cb;
+                totalRevenue += newSale;
+                totalIncurredDebt += (total - paid);
+                totalCarriedForward += cb;
+
                 if (h.status === "Ready") pendingItems++;
 
                 uniqueCustomers.add(h.customer);
-                customerCounts[h.customer] = (customerCounts[h.customer] || 0) + total;
+                customerCounts[h.customer] = (customerCounts[h.customer] || 0) + newSale;
 
                 h.items.forEach(item => {
                     serviceCounts[item.name] = (serviceCounts[item.name] || 0) + parseInt(item.qty);
                 });
             });
+
+            const netPeriodDebt = Math.max(0, totalIncurredDebt - totalCarriedForward);
 
             const topCustomer = Object.entries(customerCounts).sort((a, b) => b[1] - a[1])[0] || ["None", 0];
             const topServices = Object.entries(serviceCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
@@ -2354,7 +2469,7 @@
                 </div>
                 <div class="analytics-grid-card">
                     <div class="lbl">Unpaid Balance</div>
-                    <div class="val" style="color: #ef4444;">₦${totalDebt.toLocaleString()}</div>
+                    <div class="val" style="color: #ef4444;">₦${netPeriodDebt.toLocaleString()}</div>
                 </div>
                 <div class="analytics-grid-card">
                     <div class="lbl">Orders Ready</div>
@@ -2425,7 +2540,9 @@
                     };
                 }
                 customersMap[name].visits++;
-                customersMap[name].totalSpent += (parseFloat(h.total.replace(/[₦,]/g, "")) || 0);
+                const total = (parseFloat(h.total.replace(/[₦,]/g, "")) || 0);
+                const cb = (parseFloat(h.carriedBalance || 0) || 0);
+                customersMap[name].totalSpent += (total - cb);
             });
 
             const customers = Object.values(customersMap).filter(c =>
@@ -2453,7 +2570,11 @@
         function viewCustomerDetails(name) {
             const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
             const customerHistory = history.filter(h => h.customer === name).reverse();
-            const totalSpent = customerHistory.reduce((acc, h) => acc + (parseFloat(h.total.replace(/[₦,]/g, "")) || 0), 0);
+            const totalSpent = customerHistory.reduce((acc, h) => {
+                const total = (parseFloat(h.total.replace(/[₦,]/g, "")) || 0);
+                const cb = (parseFloat(h.carriedBalance || 0) || 0);
+                return acc + (total - cb);
+            }, 0);
             const phone = customerHistory[0].phone || "No phone recorded";
 
             $("customerList").style.display = "none";
@@ -2471,10 +2592,25 @@
                         </div>
                         <div class="analytics-grid-card" style="flex: 1; padding: 10px;">
                             <div class="lbl">Visits</div>
-                            <div class="val" style="font-size: 16px;">${customerHistory.length}</div>
+                            <div class="val" style="font-size: 16px;">${customerHistory.filter(h => !h.isPaymentOnly).length}</div>
                         </div>
                     </div>
                 </div>
+
+                <!-- Add Payment Section -->
+                <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 20px;">
+                    <div style="font-weight: 700; font-size: 13px; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">
+                        <i data-lucide="plus-circle" style="width: 14px; color: var(--primary)"></i> Record Debt Payment
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; gap: 8px;">
+                            <input type="number" id="quickPayAmount" placeholder="Amount (₦)" style="flex: 1; font-size: 12px; padding: 8px; border: 1px solid var(--border); border-radius: 4px;" />
+                            <button onclick="recordCustomerPayment('${name.replace(/'/g, "\\'")}')" class="primary" style="padding: 8px 16px; font-size: 12px;">Apply Payment</button>
+                        </div>
+                        <div style="font-size: 10px; color: var(--text-muted); text-align: center;">Logged with today's date and time</div>
+                    </div>
+                </div>
+
                 <div class="section-title">Visit History</div>
                 <div style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto;">
                     ${customerHistory.map(h => `
@@ -2483,15 +2619,68 @@
                                 <strong>${h.date}</strong><br>
                                 <small>${h.items.map(i => i.name).join(", ")}</small>
                             </div>
-                            <div style="text-align: right;">
-                                <div class="total">${h.total}</div>
-                                <span class="badge ${'status-' + (h.status || 'Received').toLowerCase()}">${h.status || 'Received'}</span>
+                        <div style="text-align: right;">
+                            <div class="total">${h.isPaymentOnly ? '- ₦' + parseFloat(h.amountPaid).toLocaleString() : h.total}</div>
+                            <div style="display: flex; gap: 4px; justify-content: flex-end; align-items: center; margin-top: 4px;">
+                                <span class="badge ${'status-' + (h.status || 'Received').toLowerCase()}" style="font-size: 9px;">${h.isPaymentOnly ? 'Payment' : (h.status || 'Received')}</span>
+                                ${h.isPaymentOnly ? '' : `
+                                <select class="badge ${'pay-' + (h.paymentStatus || 'Not Paid').replace(' ', '').toLowerCase()}" 
+                                    onchange="updatePaymentStatusFast(${h.id}, this.value, event); viewCustomerDetails('${name.replace(/'/g, "\\'")}')" 
+                                    onclick="event.stopPropagation()" style="font-size: 9px; padding-top: 1px; padding-bottom: 1px;">
+                                    <option value="Not Paid" ${(h.paymentStatus || 'Not Paid') === 'Not Paid' ? 'selected' : ''}>Unpaid</option>
+                                    <option value="Paid" ${h.paymentStatus === 'Paid' ? 'selected' : ''}>Paid</option>
+                                    <option value="Forwarded" ${h.paymentStatus === 'Forwarded' ? 'selected' : ''}>Forwarded</option>
+                                </select>
+                                `}
                             </div>
                         </div>
-                    `).join("")}
+                    </div>
+                `).join("")}
                 </div>
             `;
             if (window.lucide) lucide.createIcons();
+        }
+
+        function recordCustomerPayment(name) {
+            const amtStr = $("quickPayAmount").value;
+            const amt = parseFloat(amtStr) || 0;
+            if (amt <= 0) return showToast("Enter a valid amount", true);
+
+            const active = localStorage.getItem(activeStaffKey) || "Admin";
+            const now = new Date();
+            const dateStr = now.toLocaleString("en-NG", {
+                dateStyle: "medium",
+                timeStyle: "short",
+            });
+
+            const record = {
+                id: Date.now(),
+                customer: name,
+                phone: "",
+                date: dateStr,
+                total: "₦0.00",
+                items: [{ name: "Debt Payment", qty: 1, price: 0 }],
+                staff: active,
+                status: "Collected",
+                paymentStatus: "Paid",
+                amountPaid: amt,
+                carriedBalance: 0,
+                isPaymentOnly: true
+            };
+
+            const h = JSON.parse(localStorage.getItem(historyKey) || "[]");
+            const lastRec = h.find(r => r.customer === name && r.phone);
+            if (lastRec) record.phone = lastRec.phone;
+
+            h.push(record);
+            localStorage.setItem(historyKey, JSON.stringify(h));
+
+            showToast("Payment recorded successfully!");
+            renderHistory();
+            updateSummary();
+            updateChart();
+            renderCustomerList();
+            viewCustomerDetails(name);
         }
 
         // --- Status Logic ---
@@ -2544,6 +2733,18 @@
             if (!confirm("Are you sure you want to delete this invoice? This cannot be undone.")) return;
 
             let history = JSON.parse(localStorage.getItem(historyKey) || "[]");
+            const orderToDelete = history.find(x => x.id == id);
+
+            // Update loyalty count before removing from history
+            if (orderToDelete) {
+                const customerName = orderToDelete.customer;
+                const loyalty = JSON.parse(localStorage.getItem(loyaltyKey) || "{}");
+                if (loyalty[customerName] && loyalty[customerName] > 0) {
+                    loyalty[customerName]--;
+                    localStorage.setItem(loyaltyKey, JSON.stringify(loyalty));
+                }
+            }
+
             history = history.filter(x => x.id != id);
             localStorage.setItem(historyKey, JSON.stringify(history));
 
@@ -2556,6 +2757,7 @@
             updateSummary();
             updateChart();
             updateCustomerSuggestions();
+            updateLoyalty();
         }
 
         window.onload = init;
