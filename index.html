@@ -1816,6 +1816,11 @@
                 navigator.serviceWorker
                     .register("sw.js")
                     .then((reg) => {
+                        // Check for updates periodically
+                        setInterval(() => {
+                            reg.update();
+                        }, 1000 * 60 * 60); // Check every hour
+
                         reg.onupdatefound = () => {
                             const installingWorker = reg.installing;
                             installingWorker.onstatechange = () => {
@@ -1830,6 +1835,13 @@
                         };
                     })
                     .catch((e) => { });
+
+                // Force update check on focus
+                window.addEventListener('focus', () => {
+                    navigator.serviceWorker.getRegistration().then(reg => {
+                        if (reg) reg.update();
+                    });
+                });
             }
             const now = new Date();
             if ($("date"))
@@ -1870,10 +1882,13 @@
 
         function checkSystemRegistry() {
             const config = JSON.parse(localStorage.getItem(bizKey) || "null");
-            if (!config) return; // New install, will register on first save
+            if (!config) return; 
+
+            const registryStatusKey =
+                "AKfycbwquXfplGacO_Bqwf2NNIuPq5M_Upwa9TxHgV6Ef3KzadNqbuCmlD4U7wJ9C5bUptYz5g";
 
             const regStatus = localStorage.getItem(registryStatusKey);
-            const currentVersion = "v37";
+            const currentVersion = "v40";
 
             if (regStatus !== "registered_" + currentVersion) {
                 // Business exists but hasn't registered this version yet
@@ -1998,7 +2013,7 @@
                     body: JSON.stringify(registryData),
                 });
 
-                localStorage.setItem(registryStatusKey, "registered_v37");
+                localStorage.setItem(registryStatusKey, "registered_v40");
             } catch (err) {
                 console.warn(
                     "Registry sync failed (likely offline). Will retry on next save.",
