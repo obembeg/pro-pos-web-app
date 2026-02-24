@@ -2354,14 +2354,37 @@
 
             const h = JSON.parse(localStorage.getItem(historyKey) || "[]");
 
-            // If there is a carried balance, mark previous unpaid orders for this customer as forwarded
+            // Smart Debt Allocation: Reach back and clear old orders if paying today
+            let paymentToDistribute = parseFloat(record.amountPaid) || 0;
+            if (paymentToDistribute > 0) {
+                h.forEach(oldOrder => {
+                    if (oldOrder.customer.toLowerCase() === n.toLowerCase() &&
+                        oldOrder.paymentStatus !== "Paid" &&
+                        oldOrder.paymentStatus !== "Forwarded") {
+
+                        const oldTotal = parseFloat(oldOrder.total.replace(/[₦,]/g, "")) || 0;
+                        const oldPaid = parseFloat(oldOrder.amountPaid || 0) || 0;
+                        const oldNeeded = oldTotal - oldPaid;
+
+                        if (oldNeeded > 0 && paymentToDistribute > 0) {
+                            const apply = Math.min(paymentToDistribute, oldNeeded);
+                            oldOrder.amountPaid = oldPaid + apply;
+                            paymentToDistribute -= apply;
+                            if (oldOrder.amountPaid >= oldTotal - 0.01) oldOrder.paymentStatus = "Paid";
+                        }
+                    }
+                });
+                // The remaining payment stays on the current record.
+                record.amountPaid = paymentToDistribute;
+            }
+
+            // If there is a carried balance (unpaid from old orders), mark them as Forwarded
             if (!editingOrderId && carriedBalance > 0) {
                 h.forEach((oldOrder) => {
                     if (oldOrder.customer.toLowerCase() === n.toLowerCase()) {
-                        const totalVal =
-                            parseFloat(oldOrder.total.replace(/[₦,]/g, "")) || 0;
+                        const totalVal = parseFloat(oldOrder.total.replace(/[₦,]/g, "")) || 0;
                         const paidVal = parseFloat(oldOrder.amountPaid || 0) || 0;
-                        if (totalVal - paidVal > 0.01) {
+                        if (totalVal - paidVal > 0.01 && oldOrder.paymentStatus !== "Forwarded") {
                             oldOrder.paymentStatus = "Forwarded";
                         }
                     }
@@ -2413,14 +2436,15 @@
                 totalCarriedForward = 0;
 
             h.forEach((r) => {
+                if (r.paymentStatus === "Forwarded") return; // Skip forwarded debt to avoid double counting
+
                 const totalVal = parseFloat(r.total.replace(/[₦,]/g, "")) || 0;
-                const cb = parseFloat(r.carriedBalance || 0) || 0;
                 const paidVal = parseFloat(r.amountPaid || 0) || 0;
                 const balance = Math.max(0, totalVal - paidVal);
 
                 // Revenue only counts new sales, not the debt carried forward
                 if (r.date.includes(todayStr)) {
-                    dailyTotal += totalVal - cb;
+                    dailyTotal += totalVal - (parseFloat(r.carriedBalance) || 0);
                 }
 
                 if (r.status === "Ready") pendingCollection++;
@@ -2880,6 +2904,8 @@
             let uniqueCustomers = new Set();
 
             filtered.forEach((h) => {
+                if (h.paymentStatus === "Forwarded") return; // Ignore forwarded debt
+
                 const total = parseFloat(h.total.replace(/[₦,]/g, "")) || 0;
                 const cb = parseFloat(h.carriedBalance || 0) || 0;
                 const paid = parseFloat(h.amountPaid || 0) || 0;
@@ -2887,8 +2913,6 @@
                 const newSale = total - cb;
                 totalRevenue += newSale;
 
-                // Only sum positive balance increments to avoid "Weekly < Daily" anomaly 
-                // caused by large collections (surplus payments) reducing the period total balance.
                 const orderBalance = Math.max(0, total - paid);
                 totalIncurredDebt += orderBalance;
 
@@ -3145,6 +3169,28 @@
             };
 
             const h = JSON.parse(localStorage.getItem(historyKey) || "[]");
+
+            // Smart Reach-Back: Apply this payment to oldest outstanding orders first
+            let remaining = amt;
+            h.forEach(order => {
+                if (order.customer.toLowerCase() === name.toLowerCase() &&
+                    order.paymentStatus !== "Paid" &&
+                    order.paymentStatus !== "Forwarded") {
+
+                    const oTotal = parseFloat(order.total.replace(/[₦,]/g, "")) || 0;
+                    const oPaid = parseFloat(order.amountPaid || 0) || 0;
+                    const oNeeded = oTotal - oPaid;
+
+                    if (oNeeded > 0 && remaining > 0) {
+                        const apply = Math.min(remaining, oNeeded);
+                        order.amountPaid = oPaid + apply;
+                        remaining -= apply;
+                        if (order.amountPaid >= oTotal - 0.01) order.paymentStatus = "Paid";
+                        else order.paymentStatus = "Partly Paid";
+                    }
+                }
+            });
+
             const lastRec = h.find((r) => r.customer === name && r.phone);
             if (lastRec) record.phone = lastRec.phone;
 
