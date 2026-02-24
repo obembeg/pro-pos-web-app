@@ -1,6 +1,6 @@
 {
   "name": "Laundry Business Manager",
-  "short_name": "Laundry POS",
+  "short_name": "Laundry Sale Manager",
   "description": "Professional Laundry Management and Receipt System",
   "start_url": "./index.html",
   "display": "standalone",
