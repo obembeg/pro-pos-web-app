@@ -2416,7 +2416,7 @@
                 const totalVal = parseFloat(r.total.replace(/[₦,]/g, "")) || 0;
                 const cb = parseFloat(r.carriedBalance || 0) || 0;
                 const paidVal = parseFloat(r.amountPaid || 0) || 0;
-                const balance = totalVal - paidVal;
+                const balance = Math.max(0, totalVal - paidVal);
 
                 // Revenue only counts new sales, not the debt carried forward
                 if (r.date.includes(todayStr)) {
@@ -2425,11 +2425,10 @@
 
                 if (r.status === "Ready") pendingCollection++;
                 unpaidDebt += balance;
-                totalCarriedForward += cb;
             });
 
-            // Net debt = all balances minus amount "paid" via carry forward transfer
-            const netUnpaidDebt = Math.max(0, unpaidDebt - totalCarriedForward);
+            // Net debt = all outstanding balances from all time
+            const netUnpaidDebt = unpaidDebt;
 
             const fmt = (v) =>
                 "₦" + v.toLocaleString(undefined, { minimumFractionDigits: 0 });
@@ -2861,11 +2860,9 @@
                 oneWeekAgo.setDate(now.getDate() - 7);
                 filtered = history.filter((h) => new Date(h.id) >= oneWeekAgo);
             } else if (period === "month") {
-                const monthStr = now.toLocaleString("en-NG", {
-                    month: "short",
-                    year: "numeric",
-                });
-                filtered = history.filter((h) => h.date.includes(monthStr));
+                const m = now.toLocaleString("en-NG", { month: "short" });
+                const y = now.getFullYear().toString();
+                filtered = history.filter((h) => h.date.includes(m) && h.date.includes(y));
             } else if (period === "year") {
                 const yearStr = now.getFullYear().toString();
                 filtered = history.filter((h) => h.date.includes(yearStr));
@@ -2889,8 +2886,11 @@
 
                 const newSale = total - cb;
                 totalRevenue += newSale;
-                totalIncurredDebt += total - paid;
-                totalCarriedForward += cb;
+
+                // Only sum positive balance increments to avoid "Weekly < Daily" anomaly 
+                // caused by large collections (surplus payments) reducing the period total balance.
+                const orderBalance = Math.max(0, total - paid);
+                totalIncurredDebt += orderBalance;
 
                 if (h.status === "Ready") pendingItems++;
 
@@ -2904,10 +2904,7 @@
                 });
             });
 
-            const netPeriodDebt = Math.max(
-                0,
-                totalIncurredDebt - totalCarriedForward,
-            );
+            const netPeriodDebt = totalIncurredDebt;
 
             const topCustomer = Object.entries(customerCounts).sort(
                 (a, b) => b[1] - a[1],
