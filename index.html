@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Laundry Business Manager</title>
 
     <link rel="manifest" href="manifest.json" />
@@ -21,6 +22,10 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Firebase SDK for Universal Sync -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
     <style>
         :root {
@@ -47,6 +52,9 @@
             display: flex;
             height: 100vh;
             overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            overscroll-behavior: none;
         }
 
         /* Layout Structure */
@@ -66,6 +74,7 @@
                 overflow-x: hidden;
                 overflow-y: auto;
                 height: auto;
+                overscroll-behavior: none;
             }
 
             .sidebar {
@@ -379,6 +388,40 @@
             flex-direction: column;
         }
 
+        .cloud-sync-notice {
+            display: none;
+            overflow: hidden;
+            border: 1px solid #fdba74;
+            background: #ffedd5;
+            color: #9a3412;
+            border-radius: 10px;
+            padding: 8px 0;
+            margin-bottom: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .cloud-sync-notice-track {
+            display: inline-block;
+            padding-left: 100%;
+            animation: syncNoticeMarquee 12s linear infinite;
+        }
+
+        .cloud-sync-notice-track span {
+            padding-right: 32px;
+        }
+
+        @keyframes syncNoticeMarquee {
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+
         .section-title {
             font-size: 11px;
             font-weight: 700;
@@ -425,6 +468,10 @@
             border: 1px solid var(--border);
             border-radius: 12px;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            min-height: 52px;
         }
 
         .item-row {
@@ -848,6 +895,10 @@
             padding: 24px;
         }
 
+        #licenseOverlay {
+            z-index: 2600;
+        }
+
         .setup-card {
             background: white;
             padding: 32px;
@@ -1184,6 +1235,13 @@
         </div>
 
         <div class="sidebar-scroll">
+            <div id="cloudSyncNotice" class="cloud-sync-notice">
+                <div class="cloud-sync-notice-track">
+                    <span>Cloud sync is disabled on this account plan.</span>
+                    <span>Cloud sync is disabled on this account plan.</span>
+                    <span>Contact creator to enable cloud sync.</span>
+                </div>
+            </div>
             <div class="summary-card">
                 <div class="label">Today's Total Revenue</div>
                 <div class="value" id="dailyTotal">₦0.00</div>
@@ -1328,11 +1386,6 @@
                 <div id="historyList"></div>
             </div>
 
-            <!-- Version Label -->
-            <div
-                style="margin-top: auto; padding-top: 20px; text-align: center; opacity: 0.3; font-size: 9px; font-weight: 700; letter-spacing: 1px;">
-                VERSION 42.0
-            </div>
         </div>
     </aside>
 
@@ -1490,6 +1543,32 @@
                 <div class="input-group">
                     <label>Admin Passcode (4-digit)</label>
                     <input id="setup-admin-pin" type="password" maxlength="4" placeholder="Default: 0000" />
+                </div>
+
+                <div class="section-title">
+                    <i data-lucide="cloud"></i> Professional Cloud Sync
+                </div>
+                <div
+                    style="background: #fdf2f2; border: 1px solid #fee2e2; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                    <div style="font-size: 11px; font-weight: 700; color: #b91c1c; margin-bottom: 4px;">STORE ID (Shared
+                        Account Access)</div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input id="setup-store-id" readonly
+                            style="flex: 1; background: #fff; font-family: monospace; font-weight: 700; border-color: #fecaca;"
+                            placeholder="NOT ACTIVATED" />
+                        <button class="secondary" onclick="copyStoreId()" style="padding: 0 10px; height: 38px;"><i
+                                data-lucide="copy" style="width: 14px"></i></button>
+                    </div>
+                    <p style="font-size: 10px; color: #7f1d1d; margin-top: 6px;">Store ID is creator-issued for paid
+                        activation and shared account access.</p>
+                </div>
+
+                <div class="input-group">
+                    <label>Activate With Creator Store ID</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input id="migrate-store-id" placeholder="Enter Store ID to Link..." style="flex: 1" />
+                        <button class="secondary" onclick="migrateToCloudAccount()" style="font-size: 11px;">Activate</button>
+                    </div>
                 </div>
 
                 <div class="section-title">
@@ -1787,7 +1866,39 @@
         </div>
     </div>
 
+    <div id="licenseOverlay" class="setup-overlay">
+        <div class="setup-card" style="max-width: 420px">
+            <h2 style="justify-content: center; margin-bottom: 8px">
+                <i data-lucide="shield-check" style="color: var(--primary)"></i> App Activation
+            </h2>
+            <p style="text-align: center; margin-bottom: 16px">
+                Enter the Store ID issued by the creator to activate this app.
+            </p>
+            <div class="input-group">
+                <label>Creator Store ID</label>
+                <input id="licenseStoreIdInput" placeholder="PRO-XXXXXX" style="font-family: 'JetBrains Mono', monospace;" />
+            </div>
+            <button class="primary" style="width: 100%" onclick="activateWithStoreId()">
+                <i data-lucide="key-round"></i> Activate
+            </button>
+            <div id="licenseStatusText"
+                style="margin-top: 10px; font-size: 11px; text-align: center; color: var(--text-muted)">
+                Activation required before using app features.
+            </div>
+        </div>
+    </div>
+
     <script>
+        // Global Error Handler - shows errors visually for debugging
+        window.onerror = function (msg, url, line, col, error) {
+            const errDiv = document.createElement('div');
+            errDiv.style = 'position:fixed;top:0;left:0;right:0;background:red;color:white;padding:12px;z-index:99999;font-size:12px;font-family:monospace;word-break:break-all;';
+            errDiv.innerText = 'JS ERROR: ' + msg + ' (Line: ' + line + ')';
+            document.body.appendChild(errDiv);
+            console.error('Caught Error:', msg, 'Line:', line);
+            return false;
+        };
+
         // --- Configuration & State ---
         const historyKey = "klassySalesHistory";
         const loyaltyKey = "klassyLoyalty";
@@ -1825,6 +1936,334 @@
         ];
 
         const $ = (id) => document.getElementById(id);
+
+        const storeIdKey = "pro_pos_store_id";
+        const cloudSyncEnabled = "pro_pos_cloud_active";
+        const cloudDeviceIdKey = "pro_pos_device_id";
+        const pendingSyncKey = "pro_pos_pending_sync";
+        const licenseStatusKey = "pro_pos_license_status";
+        const licenseCheckedAtKey = "pro_pos_license_checked_at";
+        const licenseCloudKey = "pro_pos_license_cloud";
+
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDaoKAydAUpW7WgsuSHFgIinecVd2QMN1g",
+            authDomain: "ogmhan.firebaseapp.com",
+            projectId: "ogmhan",
+            storageBucket: "ogmhan.firebasestorage.app",
+            messagingSenderId: "603469101099",
+            appId: "1:603469101099:web:9fe13a4888cace7fe3d26e",
+            measurementId: "G-7C2HGH6ZWC"
+        };
+
+        // Remote manifest for direct APK updates.
+        // Expected JSON:
+        // { "latestVersion": "1.0.1", "apkUrl": "https://.../app-release.apk", "notes": "..." }
+        const APK_UPDATE_MANIFEST_URL = "";
+
+        // Initialize Firebase
+        let db = null;
+        let cloudUnsubscribe = null;
+        try {
+            if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length === 0) {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                console.log("Firebase initialized successfully.");
+            } else if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+                db = firebase.firestore();
+                console.log("Firebase already initialized.");
+            }
+        } catch (e) {
+            db = null;
+            console.warn("Cloud features disabled:", e.message);
+        }
+
+        const CloudManager = {
+            deviceId: (() => {
+                let id = localStorage.getItem(cloudDeviceIdKey);
+                if (!id) {
+                    id = "DEV-" + Math.random().toString(36).substring(2, 10).toUpperCase();
+                    localStorage.setItem(cloudDeviceIdKey, id);
+                }
+                return id;
+            })(),
+            lastLocalWriteAt: 0,
+            lastAppliedRemoteAt: 0,
+
+            async generateStoreId() {
+                return localStorage.getItem(storeIdKey) || "";
+            },
+
+            async syncToCloud() {
+                if (!db || !LicenseManager.isActive || !LicenseManager.cloudEnabled) {
+                    return false;
+                }
+                const id = localStorage.getItem(storeIdKey);
+                if (!id) return false;
+                localStorage.setItem(pendingSyncKey, "1");
+
+                const config = JSON.parse(localStorage.getItem(bizKey) || "{}");
+                const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
+                const staff = JSON.parse(localStorage.getItem(staffKey) || "[]");
+                const writeAt = Date.now();
+                this.lastLocalWriteAt = writeAt;
+
+                try {
+                    await db.collection("stores").doc(id).set({
+                        storeName: config.name || "Unnamed Store",
+                        config: config,
+                        staff: staff,
+                        history: history,
+                        updatedAtMs: writeAt,
+                        updatedBy: this.deviceId,
+                        lastSync: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                    localStorage.removeItem(pendingSyncKey);
+                    console.log("Cloud Sync: Success");
+                    return true;
+                } catch (e) {
+                    console.error("Cloud Sync Error:", e);
+                    return false;
+                }
+            },
+
+            async syncFromCloud(targetId) {
+                if (
+                    !db ||
+                    !targetId ||
+                    !LicenseManager.isActive ||
+                    !LicenseManager.cloudEnabled
+                ) {
+                    return false;
+                }
+                try {
+                    const doc = await db.collection("stores").doc(targetId).get();
+                    if (doc.exists) {
+                        const data = doc.data();
+                        if (data.config) localStorage.setItem(bizKey, JSON.stringify(data.config));
+                        if (data.history) localStorage.setItem(historyKey, JSON.stringify(data.history));
+                        if (data.staff) localStorage.setItem(staffKey, JSON.stringify(data.staff));
+                        localStorage.setItem(storeIdKey, targetId);
+                        this.startRealtimeSync(targetId);
+                        this.refreshUiFromLocal();
+                        return true;
+                    }
+                    return false;
+                } catch (e) {
+                    showToast("Sync Failed: Invalid Store ID", true);
+                    return false;
+                }
+            },
+
+            refreshUiFromLocal() {
+                loadBusinessConfig();
+                renderStaffManagement();
+                updateStaffSwitcher();
+                updateCustomerSuggestions();
+                renderHistory();
+                updateSummary();
+                updateChart();
+                calculate();
+                if (window.lucide) lucide.createIcons();
+            },
+
+            startRealtimeSync(forcedStoreId) {
+                if (!db || !LicenseManager.isActive || !LicenseManager.cloudEnabled) return;
+                const storeId = forcedStoreId || localStorage.getItem(storeIdKey);
+                if (!storeId) return;
+
+                if (cloudUnsubscribe) {
+                    cloudUnsubscribe();
+                    cloudUnsubscribe = null;
+                }
+
+                cloudUnsubscribe = db.collection("stores").doc(storeId).onSnapshot(
+                    (doc) => {
+                        if (!doc.exists) return;
+
+                        // If local has unsynced edits, push those first instead of applying stale cloud data.
+                        if (localStorage.getItem(pendingSyncKey) === "1") {
+                            this.syncToCloud();
+                            return;
+                        }
+
+                        const data = doc.data() || {};
+                        const remoteUpdatedAt = Number(data.updatedAtMs || 0);
+                        const remoteUpdatedBy = data.updatedBy || "";
+
+                        // Ignore own write echoes and already-applied snapshots.
+                        if (
+                            (remoteUpdatedBy === this.deviceId &&
+                                remoteUpdatedAt === this.lastLocalWriteAt) ||
+                            remoteUpdatedAt <= this.lastAppliedRemoteAt
+                        ) {
+                            return;
+                        }
+
+                        if (data.config) localStorage.setItem(bizKey, JSON.stringify(data.config));
+                        if (data.history) localStorage.setItem(historyKey, JSON.stringify(data.history));
+                        if (data.staff) localStorage.setItem(staffKey, JSON.stringify(data.staff));
+
+                        this.lastAppliedRemoteAt = remoteUpdatedAt;
+                        this.refreshUiFromLocal();
+                        showToast("Cloud update received");
+                    },
+                    (error) => {
+                        console.warn("Realtime sync listener error:", error);
+                    },
+                );
+            }
+        };
+
+        const LicenseManager = {
+            isActive: false,
+            cloudEnabled: false,
+
+            parseExpiryMs(value) {
+                if (!value) return null;
+                if (typeof value === "number") return value;
+                if (typeof value === "string") {
+                    const t = Date.parse(value);
+                    return Number.isNaN(t) ? null : t;
+                }
+                if (value && typeof value.toDate === "function") {
+                    return value.toDate().getTime();
+                }
+                if (value && typeof value.seconds === "number") {
+                    return value.seconds * 1000;
+                }
+                return null;
+            },
+
+            getLicenseFlags(data) {
+                if (!data) return { active: false, cloudEnabled: false };
+                const status = String(data.status || "").toLowerCase();
+                const activeFlag = data.active !== false;
+                const statusOk =
+                    status === "" ||
+                    status === "active" ||
+                    status === "paid" ||
+                    status === "trial";
+                const expiryMs =
+                    this.parseExpiryMs(data.expiresAt) || this.parseExpiryMs(data.expiry);
+                const notExpired = !expiryMs || expiryMs > Date.now();
+                const active = activeFlag && statusOk && notExpired;
+                const cloudEnabled = active && data.cloudSync !== false;
+                return { active, cloudEnabled };
+            },
+
+            setActiveState(active, cloudEnabled) {
+                this.isActive = !!active;
+                this.cloudEnabled = !!cloudEnabled && this.isActive;
+                localStorage.setItem(licenseStatusKey, this.isActive ? "active" : "inactive");
+                localStorage.setItem(licenseCloudKey, this.cloudEnabled ? "enabled" : "disabled");
+                localStorage.setItem(licenseCheckedAtKey, String(Date.now()));
+                if ($("licenseOverlay")) {
+                    $("licenseOverlay").style.display = this.isActive ? "none" : "flex";
+                }
+                updateCloudSyncNotice();
+            },
+
+            async validateStoreId(storeId) {
+                if (!db || !storeId) return { active: false, cloudEnabled: false };
+                try {
+                    const doc = await db.collection("licenses").doc(storeId).get();
+                    if (!doc.exists) return { active: false, cloudEnabled: false };
+                    return this.getLicenseFlags(doc.data() || {});
+                } catch (e) {
+                    console.warn("License check failed:", e);
+                    return { active: false, cloudEnabled: false };
+                }
+            },
+
+            async activate(storeId) {
+                const id = String(storeId || "").trim().toUpperCase();
+                if (!id) return false;
+                const flags = await this.validateStoreId(id);
+                if (!flags.active) return false;
+                localStorage.setItem(storeIdKey, id);
+                if ($("setup-store-id")) $("setup-store-id").value = id;
+                if ($("licenseStoreIdInput")) $("licenseStoreIdInput").value = id;
+                this.setActiveState(flags.active, flags.cloudEnabled);
+                if (this.cloudEnabled) {
+                    CloudManager.startRealtimeSync(id);
+                    await CloudManager.syncFromCloud(id);
+                }
+                return true;
+            },
+
+            async enforceAtStartup() {
+                const existing = localStorage.getItem(storeIdKey) || "";
+                if ($("licenseStoreIdInput")) $("licenseStoreIdInput").value = existing;
+                if (!existing) {
+                    this.setActiveState(false, false);
+                    return;
+                }
+                const flags = await this.validateStoreId(existing);
+                this.setActiveState(flags.active, flags.cloudEnabled);
+                if (flags.active && flags.cloudEnabled) {
+                    if ($("setup-store-id")) $("setup-store-id").value = existing;
+                    CloudManager.startRealtimeSync(existing);
+                }
+            },
+        };
+
+        function requireActiveLicense(actionName = "this action") {
+            if (LicenseManager.isActive) return true;
+            if ($("licenseOverlay")) $("licenseOverlay").style.display = "flex";
+            showToast(`Activation required before ${actionName}.`, true);
+            return false;
+        }
+
+        function updateCloudSyncNotice() {
+            const notice = $("cloudSyncNotice");
+            if (!notice) return;
+            const show = LicenseManager.isActive && !LicenseManager.cloudEnabled;
+            notice.style.display = show ? "block" : "none";
+        }
+
+        function copyStoreId() {
+            const el = $("setup-store-id");
+            if (el && el.value) {
+                navigator.clipboard.writeText(el.value);
+                showToast("Store ID copied!");
+            }
+        }
+
+        async function activateWithStoreId() {
+            const input = $("licenseStoreIdInput");
+            const targetId = input ? input.value.trim().toUpperCase() : "";
+            if (!targetId) return showToast("Enter a valid Store ID", true);
+            if ($("licenseStatusText")) {
+                $("licenseStatusText").innerText = "Validating license...";
+            }
+            const ok = await LicenseManager.activate(targetId);
+            if (!ok) {
+                if ($("licenseStatusText")) {
+                    $("licenseStatusText").innerText =
+                        "Activation failed. Contact creator for a valid active Store ID.";
+                }
+                showToast("License inactive or invalid Store ID", true);
+                return;
+            }
+            if ($("licenseStatusText")) {
+                $("licenseStatusText").innerText = LicenseManager.cloudEnabled
+                    ? "Activation successful."
+                    : "Activation successful (local mode: cloud sync disabled by plan).";
+            }
+            showToast("Store activated");
+        }
+
+        async function migrateToCloudAccount() {
+            const targetId = $("migrate-store-id").value;
+            if (!targetId) {
+                return showToast("Invalid Store ID format", true);
+            }
+            if (!confirm("Activate and link this device to Store ID " + targetId + "?")) return;
+            const ok = await LicenseManager.activate(targetId);
+            if (!ok) return showToast("License inactive or invalid Store ID", true);
+            showToast("Store linked successfully");
+        }
 
         function init() {
             if ("serviceWorker" in navigator) {
@@ -1884,6 +2323,17 @@
                     .join("");
             }
 
+            const sidebarItems = $("sidebarItems");
+            if (
+                tags &&
+                sidebarItems &&
+                sidebarItems.previousElementSibling !== tags
+            ) {
+                tags.insertAdjacentElement("afterend", sidebarItems);
+            }
+
+            LicenseManager.enforceAtStartup();
+
             resetForm();
             updateCustomerSuggestions();
             renderHistory();
@@ -1896,6 +2346,83 @@
         }
 
         async function forceUpdate() {
+            const isNativeAndroid =
+                !!window.Capacitor &&
+                typeof window.Capacitor.getPlatform === "function" &&
+                window.Capacitor.getPlatform() === "android";
+
+            if (isNativeAndroid) {
+                if (!APK_UPDATE_MANIFEST_URL) {
+                    showToast("Updater URL not configured", true);
+                    return;
+                }
+
+                showToast("Checking for APK updates...");
+                try {
+                    const response = await fetch(
+                        `${APK_UPDATE_MANIFEST_URL}?t=${Date.now()}`,
+                        { cache: "no-store" },
+                    );
+                    if (!response.ok) {
+                        showToast("Update check failed", true);
+                        return;
+                    }
+
+                    const manifest = await response.json();
+                    const latestVersion = String(manifest.latestVersion || "").trim();
+                    const apkUrl = String(manifest.apkUrl || "").trim();
+                    const notes = String(manifest.notes || "").trim();
+                    if (!latestVersion || !apkUrl) {
+                        showToast("Invalid update manifest", true);
+                        return;
+                    }
+
+                    const appPlugin = window.Capacitor?.Plugins?.App;
+                    let currentVersion = "0.0.0";
+                    if (appPlugin && typeof appPlugin.getInfo === "function") {
+                        const info = await appPlugin.getInfo();
+                        currentVersion = String(info.version || "0.0.0");
+                    }
+
+                    const toParts = (v) =>
+                        String(v)
+                            .split(".")
+                            .map((x) => parseInt(x, 10))
+                            .map((n) => (Number.isNaN(n) ? 0 : n));
+                    const compareVersions = (a, b) => {
+                        const aa = toParts(a);
+                        const bb = toParts(b);
+                        const len = Math.max(aa.length, bb.length);
+                        for (let i = 0; i < len; i++) {
+                            const av = aa[i] || 0;
+                            const bv = bb[i] || 0;
+                            if (av > bv) return 1;
+                            if (av < bv) return -1;
+                        }
+                        return 0;
+                    };
+
+                    if (compareVersions(latestVersion, currentVersion) <= 0) {
+                        showToast(`App is up to date (v${currentVersion})`);
+                        return;
+                    }
+
+                    const msg =
+                        `New version v${latestVersion} is available (you have v${currentVersion}).` +
+                        (notes ? `\n\nWhat's new:\n${notes}` : "") +
+                        "\n\nDownload and install now?";
+                    if (!confirm(msg)) return;
+
+                    window.open(apkUrl, "_blank");
+                    showToast("Opening APK download...");
+                    return;
+                } catch (err) {
+                    console.error("APK update check failed:", err);
+                    showToast("Could not check APK update", true);
+                    return;
+                }
+            }
+
             if ("serviceWorker" in navigator) {
                 const reg = await navigator.serviceWorker.getRegistration();
                 if (reg) {
@@ -1941,7 +2468,7 @@
                 "AKfycbwquXfplGacO_Bqwf2NNIuPq5M_Upwa9TxHgV6Ef3KzadNqbuCmlD4U7wJ9C5bUptYz5g";
 
             const regStatus = localStorage.getItem(registryStatusKey);
-            const currentVersion = "v42";
+            const currentVersion = "v43";
 
             if (regStatus !== "registered_" + currentVersion) {
                 // Business exists but hasn't registered this version yet
@@ -1951,6 +2478,11 @@
 
         function loadBusinessConfig() {
             const config = JSON.parse(localStorage.getItem(bizKey) || "null");
+
+            if ($("setup-store-id")) {
+                $("setup-store-id").value = localStorage.getItem(storeIdKey) || "";
+            }
+
             if (!config) {
                 openSetupModal();
                 return;
@@ -2034,6 +2566,9 @@
             loadBusinessConfig();
             hideSetup();
             showToast("Business Profile Updated!");
+
+            // Professional Cloud Sync
+            CloudManager.syncToCloud();
         }
 
         async function registerBusinessWithCreator(config) {
@@ -2092,6 +2627,9 @@
             $("newStaffName").value = "";
             $("newStaffPin").value = "";
             renderStaffManagement();
+
+            // Professional Cloud Sync
+            CloudManager.syncToCloud();
         }
 
         function removeStaffMember(n) {
@@ -2102,6 +2640,9 @@
                 localStorage.setItem(activeStaffKey, "Admin");
             renderStaffManagement();
             updateStaffSwitcher();
+
+            // Professional Cloud Sync
+            CloudManager.syncToCloud();
         }
 
         function renderStaffManagement() {
@@ -2323,6 +2864,7 @@
         }
 
         function saveReceipt(e) {
+            if (!requireActiveLicense("saving invoices")) return;
             const n = $("customer").value;
             if (!n) return alert("Enter name.");
             const items = [];
@@ -2354,43 +2896,7 @@
 
             const h = JSON.parse(localStorage.getItem(historyKey) || "[]");
 
-            // Smart Debt Allocation: Reach back and clear old orders if paying today
-            let paymentToDistribute = parseFloat(record.amountPaid) || 0;
-            if (paymentToDistribute > 0) {
-                h.forEach(oldOrder => {
-                    if (oldOrder.customer.toLowerCase() === n.toLowerCase() &&
-                        oldOrder.paymentStatus !== "Paid" &&
-                        oldOrder.paymentStatus !== "Forwarded") {
-
-                        const oldTotal = parseFloat(oldOrder.total.replace(/[₦,]/g, "")) || 0;
-                        const oldPaid = parseFloat(oldOrder.amountPaid || 0) || 0;
-                        const oldNeeded = oldTotal - oldPaid;
-
-                        if (oldNeeded > 0 && paymentToDistribute > 0) {
-                            const apply = Math.min(paymentToDistribute, oldNeeded);
-                            oldOrder.amountPaid = oldPaid + apply;
-                            paymentToDistribute -= apply;
-                            if (oldOrder.amountPaid >= oldTotal - 0.01) oldOrder.paymentStatus = "Paid";
-                        }
-                    }
-                });
-                // The remaining payment stays on the current record.
-                record.amountPaid = paymentToDistribute;
-            }
-
-            // If there is a carried balance (unpaid from old orders), mark them as Forwarded
-            if (!editingOrderId && carriedBalance > 0) {
-                h.forEach((oldOrder) => {
-                    if (oldOrder.customer.toLowerCase() === n.toLowerCase()) {
-                        const totalVal = parseFloat(oldOrder.total.replace(/[₦,]/g, "")) || 0;
-                        const paidVal = parseFloat(oldOrder.amountPaid || 0) || 0;
-                        if (totalVal - paidVal > 0.01 && oldOrder.paymentStatus !== "Forwarded") {
-                            oldOrder.paymentStatus = "Forwarded";
-                        }
-                    }
-                });
-            }
-
+            // Keep entered payment on the current invoice; do not auto-apply it to previous debt.
             if (editingOrderId) {
                 const idx = h.findIndex((x) => x.id === editingOrderId);
                 if (idx !== -1) h[idx] = record;
@@ -2399,6 +2905,7 @@
                 h.push(record);
             }
 
+            rebuildForwardedForCustomer(n, h);
             localStorage.setItem(historyKey, JSON.stringify(h));
 
             const loyalty = JSON.parse(localStorage.getItem(loyaltyKey) || "{}");
@@ -2423,6 +2930,9 @@
                 }, 2000);
             }
             if (!editingOrderId) resetForm(); // Only reset if it's a new order
+
+            // Professional Cloud Sync: Auto-backup to universal database
+            CloudManager.syncToCloud();
         }
 
         function updateSummary() {
@@ -2436,9 +2946,8 @@
                 totalCarriedForward = 0;
 
             h.forEach((r) => {
-                if (r.paymentStatus === "Forwarded") return; // Skip forwarded debt to avoid double counting
-
                 const totalVal = parseFloat(r.total.replace(/[₦,]/g, "")) || 0;
+                const cb = parseFloat(r.carriedBalance || 0) || 0;
                 const paidVal = parseFloat(r.amountPaid || 0) || 0;
                 const balance = Math.max(0, totalVal - paidVal);
 
@@ -2448,7 +2957,11 @@
                 }
 
                 if (r.status === "Ready") pendingCollection++;
-                unpaidDebt += balance;
+
+                // Only count balance if it hasn't been forwarded to a new receipt
+                if (r.paymentStatus !== "Forwarded") {
+                    unpaidDebt += balance;
+                }
             });
 
             // Net debt = all outstanding balances from all time
@@ -2669,6 +3182,7 @@
                     let totalDebt = 0;
                     let totalCarried = 0;
                     customersInHistory.forEach((r) => {
+                        if (r.isPaymentOnly) return;
                         const t = parseFloat(r.total.replace(/[₦,]/g, "")) || 0;
                         const p = parseFloat(r.amountPaid || 0) || 0;
                         const cb = parseFloat(r.carriedBalance || 0) || 0;
@@ -2840,6 +3354,9 @@
                 renderHistory();
                 updateSummary();
                 updateCustomerSuggestions();
+
+                // Professional Cloud Sync
+                CloudManager.syncToCloud();
             }
         }
         function showToast(m, err = false) {
@@ -2904,8 +3421,6 @@
             let uniqueCustomers = new Set();
 
             filtered.forEach((h) => {
-                if (h.paymentStatus === "Forwarded") return; // Ignore forwarded debt
-
                 const total = parseFloat(h.total.replace(/[₦,]/g, "")) || 0;
                 const cb = parseFloat(h.carriedBalance || 0) || 0;
                 const paid = parseFloat(h.amountPaid || 0) || 0;
@@ -2913,8 +3428,11 @@
                 const newSale = total - cb;
                 totalRevenue += newSale;
 
-                const orderBalance = Math.max(0, total - paid);
-                totalIncurredDebt += orderBalance;
+                // Debt is only counted if not forwarded
+                if (h.paymentStatus !== "Forwarded") {
+                    const orderBalance = Math.max(0, total - paid);
+                    totalIncurredDebt += orderBalance;
+                }
 
                 if (h.status === "Ready") pendingItems++;
 
@@ -3142,6 +3660,7 @@
         }
 
         function recordCustomerPayment(name) {
+            if (!requireActiveLicense("recording payments")) return;
             const amtStr = $("quickPayAmount").value;
             const amt = parseFloat(amtStr) || 0;
             if (amt <= 0) return showToast("Enter a valid amount", true);
@@ -3172,6 +3691,7 @@
 
             // Smart Reach-Back: Apply this payment to oldest outstanding orders first
             let remaining = amt;
+            const allocations = [];
             h.forEach(order => {
                 if (order.customer.toLowerCase() === name.toLowerCase() &&
                     order.paymentStatus !== "Paid" &&
@@ -3184,6 +3704,7 @@
                     if (oNeeded > 0 && remaining > 0) {
                         const apply = Math.min(remaining, oNeeded);
                         order.amountPaid = oPaid + apply;
+                        allocations.push({ orderId: order.id, amount: apply });
                         remaining -= apply;
                         if (order.amountPaid >= oTotal - 0.01) order.paymentStatus = "Paid";
                         else order.paymentStatus = "Partly Paid";
@@ -3191,13 +3712,20 @@
                 }
             });
 
+            if (allocations.length > 0) {
+                record.paymentAllocations = allocations;
+            }
+
             const lastRec = h.find((r) => r.customer === name && r.phone);
             if (lastRec) record.phone = lastRec.phone;
 
             h.push(record);
             localStorage.setItem(historyKey, JSON.stringify(h));
 
-            showToast("Payment recorded successfully!");
+            showToast("Payment recorded & Cloud Synced");
+
+            // Professional Cloud Sync
+            CloudManager.syncToCloud();
             renderHistory();
             updateSummary();
             updateChart();
@@ -3234,6 +3762,8 @@
                     const totalVal =
                         parseFloat(history[idx].total.replace(/[₦,]/g, "")) || 0;
                     history[idx].amountPaid = totalVal;
+                } else if (newStatus === "Not Paid") {
+                    history[idx].amountPaid = 0;
                 }
 
                 localStorage.setItem(historyKey, JSON.stringify(history));
@@ -3243,7 +3773,8 @@
             }
         }
 
-        function deleteOrder(id, event) {
+        async function deleteOrder(id, event) {
+            if (!requireActiveLicense("deleting invoices")) return;
             if (event) event.stopPropagation();
 
             // Hard security check: ensure only Admin can delete
@@ -3263,6 +3794,10 @@
             let history = JSON.parse(localStorage.getItem(historyKey) || "[]");
             const orderToDelete = history.find((x) => x.id == id);
 
+            if (orderToDelete && orderToDelete.isPaymentOnly) {
+                rollbackPaymentOnlyEntry(orderToDelete, history);
+            }
+
             // Update loyalty count before removing from history
             if (orderToDelete) {
                 const customerName = orderToDelete.customer;
@@ -3274,6 +3809,9 @@
             }
 
             history = history.filter((x) => x.id != id);
+            if (orderToDelete && orderToDelete.customer) {
+                rebuildForwardedForCustomer(orderToDelete.customer, history);
+            }
             localStorage.setItem(historyKey, JSON.stringify(history));
 
             if (editingOrderId == id) {
@@ -3286,10 +3824,121 @@
             updateChart();
             updateCustomerSuggestions();
             updateLoyalty();
+
+            // Professional Cloud Sync
+            if (LicenseManager.cloudEnabled) {
+                const synced = await CloudManager.syncToCloud();
+                if (!synced) {
+                    showToast("Delete saved locally. Cloud sync will retry.", true);
+                }
+            }
         }
 
+        function parseNaira(value) {
+            return parseFloat(String(value || "0").replace(/[₦,]/g, "")) || 0;
+        }
+
+        function rollbackPaymentOnlyEntry(paymentEntry, history) {
+            if (!paymentEntry || !paymentEntry.isPaymentOnly) return;
+            const EPS = 0.01;
+            let remaining = parseFloat(paymentEntry.amountPaid || 0) || 0;
+
+            const resetOrderStatus = (order) => {
+                const totalVal = parseNaira(order.total);
+                const paidVal = parseFloat(order.amountPaid || 0) || 0;
+                if (paidVal >= totalVal - EPS) order.paymentStatus = "Paid";
+                else if (paidVal > EPS) order.paymentStatus = "Partly Paid";
+                else order.paymentStatus = "Not Paid";
+            };
+
+            if (
+                Array.isArray(paymentEntry.paymentAllocations) &&
+                paymentEntry.paymentAllocations.length > 0
+            ) {
+                paymentEntry.paymentAllocations.forEach((alloc) => {
+                    const target = history.find((o) => o.id == alloc.orderId);
+                    if (!target) return;
+                    const currentPaid = parseFloat(target.amountPaid || 0) || 0;
+                    const rollback = Math.min(
+                        currentPaid,
+                        parseFloat(alloc.amount || 0) || 0,
+                    );
+                    if (rollback <= EPS) return;
+                    target.amountPaid = Math.max(0, currentPaid - rollback);
+                    remaining -= rollback;
+                    resetOrderStatus(target);
+                });
+                return;
+            }
+
+            // Fallback for payment records created before allocation tracking existed.
+            const customer = String(paymentEntry.customer || "").toLowerCase();
+            history
+                .filter(
+                    (o) =>
+                        String(o.customer || "").toLowerCase() === customer &&
+                        !o.isPaymentOnly,
+                )
+                .sort((a, b) => (a.id || 0) - (b.id || 0))
+                .forEach((order) => {
+                    if (remaining <= EPS) return;
+                    const currentPaid = parseFloat(order.amountPaid || 0) || 0;
+                    if (currentPaid <= EPS) return;
+                    const rollback = Math.min(currentPaid, remaining);
+                    order.amountPaid = Math.max(0, currentPaid - rollback);
+                    remaining -= rollback;
+                    resetOrderStatus(order);
+                });
+        }
+
+        function rebuildForwardedForCustomer(customerName, history) {
+            if (!customerName) return;
+            const customer = customerName.toLowerCase();
+            const EPS = 0.01;
+
+            // Reset forwarded orders for this customer to their natural payment state first.
+            history.forEach((order) => {
+                if (String(order.customer || "").toLowerCase() !== customer) return;
+                if (order.paymentStatus !== "Forwarded") return;
+                const totalVal = parseNaira(order.total);
+                const paidVal = parseFloat(order.amountPaid || 0) || 0;
+                if (paidVal >= totalVal - EPS) order.paymentStatus = "Paid";
+                else if (paidVal > EPS) order.paymentStatus = "Partly Paid";
+                else order.paymentStatus = "Not Paid";
+            });
+
+            const customerOrders = history
+                .filter((order) => String(order.customer || "").toLowerCase() === customer)
+                .sort((a, b) => (a.id || 0) - (b.id || 0));
+
+            // Re-apply forwarding from each carrier invoice to older outstanding orders.
+            customerOrders.forEach((carrier) => {
+                const carried = parseFloat(carrier.carriedBalance || 0) || 0;
+                if (carried <= EPS) return;
+
+                let remaining = carried;
+                for (const older of customerOrders) {
+                    if (older.id >= carrier.id) break;
+                    if (older.paymentStatus === "Paid" || older.paymentStatus === "Forwarded") {
+                        continue;
+                    }
+
+                    const outstanding =
+                        parseNaira(older.total) - (parseFloat(older.amountPaid || 0) || 0);
+                    if (outstanding <= EPS) continue;
+
+                    older.paymentStatus = "Forwarded";
+                    remaining -= outstanding;
+                    if (remaining <= EPS) break;
+                }
+            });
+        }
         window.onload = init;
     </script>
 </body>
 
 </html>
+
+
+
+
