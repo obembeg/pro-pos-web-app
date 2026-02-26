@@ -1,0 +1,7 @@
+android
+node_modules
+www
+.vscode
+package.json
+package-lock.json
+capacitor.config.json
