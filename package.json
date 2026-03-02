@@ -10,7 +10,7 @@
         "cap:copy": "npx cap copy",
         "cap:open:android": "npx cap open android",
         "cap:open:ios": "npx cap open ios",
-        "build": "mkdir -p www && cp index.html manifest.json sw.js icon.png www/"
+        "build": "mkdir -p www && cp index.html manifest.json sw.js icon.png www/ && cp -r downloads/ www/downloads/"
     },
     "keywords": [],
     "author": "OG",
@@ -19,8 +19,10 @@
         "@capacitor/android": "^6.0.0",
         "@capacitor/app": "^6.0.0",
         "@capacitor/core": "^6.0.0",
+        "@capacitor/filesystem": "^6.0.0",
         "@capacitor/haptics": "^6.0.0",
         "@capacitor/keyboard": "^6.0.0",
+        "@capacitor/share": "^6.0.0",
         "@capacitor/status-bar": "^6.0.0"
     },
     "devDependencies": {

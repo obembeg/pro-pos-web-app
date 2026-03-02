@@ -1,1 +1,1 @@
-This is a Point Of Sale manager for Laundry businesses. It is installable on mobile and laptops and can run locally without internet
+A premium, professional Point of Sale system tailored specifically for laundry and service-based businesses. This app is designed for speed, security, and real-time cloud synchronization.
