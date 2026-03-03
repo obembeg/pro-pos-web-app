@@ -3,7 +3,7 @@
   "cleanUrls": true,
   "headers": [
     {
-      "source": "/downloads/(.*).apk",
+      "source": "/downloads/:path*.apk",
       "headers": [
         {
           "key": "Content-Type",
@@ -14,16 +14,6 @@
           "value": "attachment"
         }
       ]
-    }
-  ],
-  "routes": [
-    {
-      "src": "/downloads/(.*)",
-      "dest": "/downloads/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
     }
   ]
 }
