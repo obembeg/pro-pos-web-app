@@ -1,12 +1,26 @@
 {
   "version": 2,
-  "builds": [
+  "cleanUrls": true,
+  "headers": [
     {
-      "src": "index.html",
-      "use": "@vercel/static"
+      "source": "/downloads/(.*).apk",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/vnd.android.package-archive"
+        },
+        {
+          "key": "Content-Disposition",
+          "value": "attachment"
+        }
+      ]
     }
   ],
   "routes": [
+    {
+      "src": "/downloads/(.*)",
+      "dest": "/downloads/$1"
+    },
     {
       "src": "/(.*)",
       "dest": "/$1"
