@@ -1,0 +1,6 @@
+{
+    "latestVersion": "1.0.0",
+    "versionCode": 1,
+    "apkUrl": "https://smartlaundrymanager.vercel.app/downloads/Laundry_Business_Manager.apk",
+    "notes": "Initial release with Cloud Sync and Offline mode."
+}

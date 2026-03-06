@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pro-pos-v45';
+const CACHE_NAME = 'pro-pos-v58';
 const ASSETS = [
     './',
     './index.html',
@@ -6,6 +6,8 @@ const ASSETS = [
     './icon.png',
     'https://unpkg.com/lucide@latest',
     'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
+    'https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js',
+    'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js',
     'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap'
 ];
 

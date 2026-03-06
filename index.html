@@ -1581,6 +1581,53 @@
                 box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
             }
         }
+
+        /* Priority / Urgent Styles */
+        .priority-urgent-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 9px;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            animation: urgentPulse 2s ease-in-out infinite;
+            box-shadow: 0 0 8px rgba(220, 38, 38, 0.4);
+        }
+
+        @keyframes urgentPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 6px rgba(220, 38, 38, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 14px rgba(220, 38, 38, 0.7);
+            }
+        }
+
+        .priority-normal-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 999px;
+            background: #e0f2fe;
+            color: #0369a1;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        #expectedPickupGroup {
+            transition: all 0.3s ease;
+        }
     </style>
 </head>
 
@@ -1638,7 +1685,8 @@
                 <span id="currentStaffName">Admin</span>
                 <i data-lucide="lock" style="width: 12px; margin-left: auto; opacity: 0.6"></i>
             </div>
-            <div id="syncStatusBadge" class="sync-status pending">Sync: Checking...</div>
+            <div id="syncStatusBadge" class="sync-status pending" onclick="forceSyncNow()" style="cursor: pointer;"
+                title="Tap to retry sync">Sync: Checking...</div>
             <div id="storeContextBadge" class="store-context-badge">Store: --- | Mode: Local | Staff: Admin</div>
         </div>
 
@@ -1676,8 +1724,8 @@
             </div>
 
             <div class="input-group">
-                <label>Date & Time</label>
-                <input id="date" type="text" readonly />
+                <label>Date</label>
+                <input id="date" type="date" style="padding: 6px; font-weight: 600;" />
             </div>
 
             <div class="input-group">
@@ -1702,6 +1750,26 @@
             <div class="input-group" id="paidInputGroup" style="display: none">
                 <label>Amount Paid (₦)</label>
                 <input id="amountPaid" type="number" placeholder="0.00" oninput="calculate()" />
+            </div>
+
+            <div class="input-group">
+                <label>Priority</label>
+                <select id="orderPriority" class="staff-select" onchange="togglePickupDate(); calculate();" style="
+                  width: 100%;
+                  border: 1px solid var(--border);
+                  padding: 8px;
+                  border-radius: 6px;
+                  font-weight: 600;
+                  background: white;
+                ">
+                    <option value="Normal">🟢 Normal</option>
+                    <option value="Urgent">🔴 Urgent</option>
+                </select>
+            </div>
+
+            <div class="input-group" id="expectedPickupGroup" style="display: none">
+                <label>Expected Pickup Date</label>
+                <input id="expectedPickup" type="date" style="padding: 6px; font-weight: 600;" oninput="calculate()" />
             </div>
 
             <div class="section-title">
@@ -1821,6 +1889,13 @@
                 </div>
                 <div style="margin-bottom: 5px">
                     <strong>Invoice No:</strong> <span id="p-invoice-no">---</span>
+                </div>
+                <div id="p-priority-row" style="margin-bottom: 5px; display: none">
+                    <strong>Priority:</strong> <span id="p-priority" style="font-weight: 700">Normal</span>
+                </div>
+                <div id="p-pickup-row" style="margin-bottom: 5px; display: none">
+                    <strong>Expected Pickup:</strong> <span id="p-pickup"
+                        style="font-weight: 700; color: #dc2626">---</span>
                 </div>
 
                 <div class="divider"></div>
@@ -2027,6 +2102,18 @@
                             placeholder="NOT ACTIVATED" />
                         <button class="secondary" onclick="copyStoreId()" style="padding: 0 10px; height: 38px;"><i
                                 data-lucide="copy" style="width: 14px"></i></button>
+                    </div>
+                    <div class="input-group" style="margin-top: 10px;">
+                        <label style="color: #b91c1c; font-weight: 700;">Security Setup Key (Optional)</label>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input id="setup-security-key" type="password" placeholder="Extra key for new devices"
+                                style="flex: 1; border-color: #fecaca;" />
+                            <button class="secondary" onclick="toggleSetupKey()" style="padding: 0 10px; height: 38px;">
+                                <i id="setup-security-key-icon" data-lucide="eye" style="width: 14px"></i>
+                            </button>
+                        </div>
+                        <p style="font-size: 10px; color: #7f1d1d; margin-top: 4px;">If set, new devices must provide
+                            this key before syncing data.</p>
                     </div>
                     <p style="font-size: 10px; color: #7f1d1d; margin-top: 6px;">This feature lets you as admin monitor
                         activities remotely.</p>
@@ -2356,13 +2443,17 @@
             </div>
             <input id="simpleExpenseEditId" type="hidden" />
 
-            <div style="display:flex; gap: 8px; margin-bottom: 10px;">
+            <div style="display:flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
                 <button class="primary" onclick="saveSimpleExpense()">
                     <i data-lucide="save" style="width: 14px"></i> Save
                 </button>
                 <button class="secondary" onclick="resetSimpleExpenseForm()">Reset</button>
                 <button class="secondary" onclick="exportSimpleExpensesCSV()">
                     <i data-lucide="download" style="width: 14px"></i> Export CSV
+                </button>
+                <button class="secondary" onclick="openExpenseAnalysis()"
+                    style="background: #eff6ff; border-color: #bfdbfe; color: #1e40af;">
+                    <i data-lucide="pie-chart" style="width: 14px"></i> Analysis
                 </button>
             </div>
 
@@ -2375,15 +2466,49 @@
             font-size: 12px;
             color: var(--text-muted);
           "></div>
-
             <div id="simpleExpenseList" style="
-            max-height: 52vh;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-          ">
+                max-height: 52vh;
+                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+              ">
                 <!-- JS renders expenses -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Expense Analysis Overlay -->
+    <div id="expenseAnalysisOverlay" class="setup-overlay" style="z-index: 2002;">
+        <div class="setup-card" style="max-width: 600px; width: 95%">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+                <div>
+                    <h2><i data-lucide="pie-chart" style="color: var(--primary)"></i> Expense Analysis</h2>
+                    <p>Insights on most repeated and high-cost expenses.</p>
+                </div>
+                <button onclick="closeExpenseAnalysis()" class="btn-icon">
+                    <i data-lucide="x" style="width: 24px"></i>
+                </button>
+            </div>
+
+            <div id="expenseAnalysisStats"
+                style="background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 15px; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <!-- Stats injected here -->
+            </div>
+
+            <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <h4 style="margin: 0;">Repeated Expenses (By Title)</h4>
+                <select id="expenseAnalysisTimeframe" onchange="renderExpenseAnalysis()"
+                    style="font-size: 11px; padding: 4px 8px; min-width: auto; height: 32px;">
+                    <option value="all">All Time</option>
+                    <option value="30">Last 30 Days</option>
+                    <option value="90">Last 90 Days</option>
+                </select>
+            </div>
+
+            <div id="expenseAnalysisList"
+                style="max-height: 48vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+                <!-- Analysis data injected here -->
             </div>
         </div>
     </div>
@@ -2562,6 +2687,9 @@
                 <h4>Proceed with existing Store ID</h4>
                 <div class="login-activation-row">
                     <input id="loginStoreIdInput" placeholder="PRO-XXXXXX" />
+                </div>
+                <div class="login-activation-row" style="margin-top: 8px;">
+                    <input id="loginStoreSecurityKey" type="password" placeholder="Setup Key (if any)" />
                     <button class="primary" onclick="activateWithStoreId('login')"
                         style="height: 40px; padding: 0 14px;">
                         Proceed
@@ -2698,10 +2826,15 @@
             </div>
 
             <div id="workflowStats"
-                style="background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 16px; display: flex; gap: 20px; font-size: 13px;">
-                <div style="color: #ef4444; font-weight: 700;">Overdue: <span id="wf-overdue-count">0</span></div>
-                <div style="color: #f59e0b; font-weight: 700;">In Progress: <span id="wf-progress-count">0</span></div>
-                <div style="color: #10b981; font-weight: 700;">Ready: <span id="wf-ready-count">0</span></div>
+                style="background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px 12px; font-size: 12px;">
+                <div style="color: #ef4444; font-weight: 700; min-width: 0;">Overdue: <span
+                        id="wf-overdue-count">0</span></div>
+                <div style="color: #dc2626; font-weight: 700; min-width: 0;">🔴 Urgent: <span
+                        id="wf-urgent-count">0</span></div>
+                <div style="color: #f59e0b; font-weight: 700; min-width: 0;">In Progress: <span
+                        id="wf-progress-count">0</span></div>
+                <div style="color: #10b981; font-weight: 700; min-width: 0;">Ready: <span id="wf-ready-count">0</span>
+                </div>
             </div>
 
             <div id="workflowList"
@@ -2864,13 +2997,78 @@
             { name: "Duvet", price: 2500 },
             { name: "Bedspread", price: 1000 },
             { name: "Native", price: 1500 },
+            { name: "Native (Complete Agbada)", price: 3000 },
             { name: "Top", price: 700 },
             { name: "Singlet", price: 300 },
             { name: "Boxers", price: 300 },
             { name: "Gown", price: 1500 },
+            { name: "Jalabiya", price: 1000 },
+            { name: "Jean", price: 700 },
+            { name: "Skirt", price: 700 },
+            { name: "Towel", price: 700 },
+
         ];
 
         const $ = (id) => document.getElementById(id);
+
+        const WEAK_PINS = ["0000", "1111", "1234", "2222", "8888", "2580", "4321", "9999"];
+        let pinLockoutUntil = 0;
+        let pinFailedAttempts = 0;
+
+        function isPinWeak(pin) {
+            return WEAK_PINS.includes(pin);
+        }
+
+        function checkPinLockout() {
+            if (pinLockoutUntil > Date.now()) {
+                const diff = Math.ceil((pinLockoutUntil - Date.now()) / 1000);
+                showToast(`Too many attempts. Lockout: ${diff}s`, true);
+                return true;
+            }
+            return false;
+        }
+
+        function handlePinFailure() {
+            pinFailedAttempts++;
+            if (pinFailedAttempts >= 5) {
+                pinLockoutUntil = Date.now() + 60000; // 1 minute lockout
+                pinFailedAttempts = 0;
+                showToast("5 failed attempts. Locked for 1 minute.", true);
+            } else {
+                showToast(`Wrong PIN. ${5 - pinFailedAttempts} attempts left.`, true);
+            }
+        }
+
+        function handlePinSuccess() {
+            pinFailedAttempts = 0;
+            pinLockoutUntil = 0;
+        }
+
+        function toggleSetupKey() {
+            const el = $("setup-security-key");
+            const icon = $("setup-security-key-icon");
+            if (el.type === "password") {
+                el.type = "text";
+                icon.setAttribute("data-lucide", "eye-off");
+            } else {
+                el.type = "password";
+                icon.setAttribute("data-lucide", "eye");
+            }
+            if (window.lucide) lucide.createIcons();
+        }
+
+        const formatInputDate = (date) => {
+            const d = date || new Date();
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, "0");
+            const day = String(d.getDate()).padStart(2, "0");
+            return `${y}-${m}-${day}`;
+        };
+        const formatDisplayDate = (val) => {
+            if (!val) return "---";
+            const date = new Date(val);
+            return isNaN(date.getTime()) ? val : date.toLocaleString("en-NG", { dateStyle: "medium" });
+        };
 
         function normalizeCustomerName(value) {
             return String(value || "").replace(/\s+/g, " ").trim();
@@ -3018,14 +3216,19 @@
         }
 
         function saveStoreScopedData(storeId) {
+            // Optimization: Only run during explicit saves or app close, not on every sync packet.
             const id = String(storeId || "").trim().toUpperCase();
             if (!id) return;
-            const payload = {};
-            storeScopedDataKeys.forEach((key) => {
-                const value = localStorage.getItem(key);
-                if (value !== null) payload[key] = value;
-            });
-            localStorage.setItem(getStoreCacheKey(id), JSON.stringify(payload));
+            try {
+                const payload = {};
+                storeScopedDataKeys.forEach((key) => {
+                    const value = localStorage.getItem(key);
+                    if (value !== null) payload[key] = value;
+                });
+                localStorage.setItem(getStoreCacheKey(id), JSON.stringify(payload));
+            } catch (e) {
+                console.warn("Scoped data save failed", e);
+            }
         }
 
         function clearWorkingStoreData() {
@@ -3075,14 +3278,17 @@
         function normalizeStaffRecords(items) {
             const list = Array.isArray(items) ? items : [];
             let changed = false;
+            if (list.length === 0) return { normalized: [], changed: false };
             const normalized = list
                 .map((x) => {
-                    const name = String(x?.name || "").trim();
-                    const pin = String(x?.pin || "").trim();
+                    if (!x) return null;
+                    const name = String(x.name || "").trim();
+                    const pin = String(x.pin || "").trim();
                     if (!name || !pin) return null;
-                    const role = x?.role === "admin" ? "admin" : "staff";
-                    if (x?.role !== role) changed = true;
-                    return { ...x, name, pin, role };
+                    const role = x.role === "admin" ? "admin" : "staff";
+                    const isDel = x.deleted === true;
+                    if (x.role !== role) changed = true;
+                    return { ...x, name, pin, role, deleted: isDel };
                 })
                 .filter(Boolean);
             return { normalized, changed };
@@ -3093,6 +3299,10 @@
             const { normalized, changed } = normalizeStaffRecords(raw);
             if (changed) localStorage.setItem(staffKey, JSON.stringify(normalized));
             return normalized;
+        }
+
+        function getActiveStaffRecords() {
+            return getStaffRecords().filter(x => !x.deleted);
         }
 
         function getStaffRole(name) {
@@ -3114,44 +3324,66 @@
         }
 
         function getRecordVersion(record) {
-            if (!record || typeof record !== "object") return 0;
-            const numericId = Number(record.id);
-            const modifiedMs = Number(record.modifiedAtMs || 0);
-            if (Number.isFinite(modifiedMs) && modifiedMs > 0) return modifiedMs;
-            const updatedMs = Number(record.updatedAtMs || 0);
-            if (Number.isFinite(updatedMs) && updatedMs > 0) return updatedMs;
-            const parsedUpdated = Date.parse(String(record.updatedAt || ""));
-            if (Number.isFinite(parsedUpdated)) return parsedUpdated;
-            const parsedCreated = Date.parse(String(record.createdAt || ""));
-            if (Number.isFinite(parsedCreated)) return parsedCreated;
-            if (Number.isFinite(numericId) && numericId > 0) return numericId;
+            if (!record) return 0;
+            // High-speed priority for numbers (99% of cases now)
+            if (record.version > 0) return record.version;
+            if (record.modifiedAtMs > 0) return record.modifiedAtMs;
+            if (record.updatedAtMs > 0) return record.updatedAtMs;
+            // Fallback for older versions (String dates)
+            if (record.updatedAt) {
+                const p = Date.parse(record.updatedAt);
+                if (!isNaN(p)) return p;
+            }
+            if (record.createdAt) {
+                const p = Date.parse(record.createdAt);
+                if (!isNaN(p)) return p;
+            }
             return 0;
         }
 
         function mergeRecordsById(localRecords, remoteRecords) {
             const merged = new Map();
-            const upsert = (record) => {
+            const process = (record) => {
                 const id = String(record?.id ?? "");
                 if (!id) return;
+                const v = getRecordVersion(record);
                 const existing = merged.get(id);
-                if (!existing || getRecordVersion(record) >= getRecordVersion(existing)) {
+                if (!existing || v >= getRecordVersion(existing)) {
                     merged.set(id, record);
                 }
             };
-            (Array.isArray(remoteRecords) ? remoteRecords : []).forEach(upsert);
-            (Array.isArray(localRecords) ? localRecords : []).forEach(upsert);
+            (Array.isArray(remoteRecords) ? remoteRecords : []).forEach(process);
+            (Array.isArray(localRecords) ? localRecords : []).forEach(process);
             return Array.from(merged.values());
         }
 
         function mergeStaffByName(localStaff, remoteStaff) {
             const merged = new Map();
-            const upsert = (staff) => {
+            const handleUpsert = (staff) => {
                 const name = String(staff?.name || "").trim();
                 if (!name) return;
-                merged.set(name.toLowerCase(), { ...staff, name });
+                const lower = name.toLowerCase();
+                const current = merged.get(lower) || {};
+
+                // Safety Lock:
+                // Once deleted, always deleted, unless explicitly revived (deleted === false).
+                // This stops old versions (v48) from 'saving' deleted staff by uploading 
+                // a record that doesn't have the 'deleted' flag at all.
+                const isAlreadyDeleted = current.deleted === true || staff.deleted === true;
+                const isExplicitlyRevived = staff.deleted === false;
+
+                const mergedObj = { ...current, ...staff, name };
+
+                if (isAlreadyDeleted && !isExplicitlyRevived) {
+                    mergedObj.deleted = true;
+                }
+
+                merged.set(lower, mergedObj);
             };
-            (Array.isArray(remoteStaff) ? remoteStaff : []).forEach(upsert);
-            (Array.isArray(localStaff) ? localStaff : []).forEach(upsert);
+            // Order doesn't matter as much now because of the sticky delete logic,
+            // but we'll stick to remote then local.
+            (Array.isArray(remoteStaff) ? remoteStaff : []).forEach(handleUpsert);
+            (Array.isArray(localStaff) ? localStaff : []).forEach(handleUpsert);
             return Array.from(merged.values());
         }
 
@@ -3230,7 +3462,7 @@
         // Remote manifest for direct APK updates.
         // Expected JSON:
         // { "latestVersion": "1.0.1", "apkUrl": "https://.../app-release.apk", "notes": "..." }
-        const APK_UPDATE_MANIFEST_URL = "";
+        const APK_UPDATE_MANIFEST_URL = "https://smartlaundrymanager.vercel.app/downloads/manifest.json";
 
         // Initialize Firebase
         let db = null;
@@ -3238,13 +3470,16 @@
         let licenseUnsubscribe = null;
         let activeLicenseStoreId = "";
         try {
-            if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length === 0) {
-                firebase.initializeApp(firebaseConfig);
+            if (typeof firebase !== 'undefined') {
+                if (firebase.apps.length === 0) {
+                    firebase.initializeApp(firebaseConfig);
+                }
                 db = firebase.firestore();
+                // Enable offline data persistence for better multi-device/offline experience
+                db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+                    console.warn("Firestore persistence failed:", err.code);
+                });
                 console.log("Firebase initialized successfully.");
-            } else if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
-                db = firebase.firestore();
-                console.log("Firebase already initialized.");
             }
         } catch (e) {
             db = null;
@@ -3262,17 +3497,23 @@
             })(),
             lastLocalWriteAt: 0,
             lastAppliedRemoteAt: 0,
+            isSyncing: false,
+            _syncDebounceTimer: null,
 
             async generateStoreId() {
                 return localStorage.getItem(storeIdKey) || "";
             },
 
-            async syncToCloud() {
+            async syncToCloud(options = {}) {
+                if (this.isSyncing) return false;
                 if (!db || !LicenseManager.isActive || !LicenseManager.cloudEnabled) {
                     return false;
                 }
                 const id = localStorage.getItem(storeIdKey);
                 if (!id) return false;
+
+                const isSilent = !!options.silent;
+                this.isSyncing = true;
                 localStorage.setItem(pendingSyncKey, "1");
 
                 const config = JSON.parse(localStorage.getItem(bizKey) || "{}");
@@ -3285,41 +3526,34 @@
                 this.lastLocalWriteAt = writeAt;
 
                 try {
+                    // For performance, we'll try a single SET write first if we can, 
+                    // or fetch remote only when absolutely necessary for merging.
                     const remoteDoc = await db.collection("stores").doc(id).get();
                     const remoteData = remoteDoc.exists ? (remoteDoc.data() || {}) : {};
-                    const remoteHistory = Array.isArray(remoteData.history) ? remoteData.history : [];
-                    const remoteStaff = Array.isArray(remoteData.staff) ? remoteData.staff : [];
-                    const remoteSimpleExpenses = Array.isArray(remoteData.simpleExpenses)
-                        ? remoteData.simpleExpenses
-                        : [];
-                    const remoteInventory = Array.isArray(remoteData.inventory) ? remoteData.inventory : [];
-                    const remoteHistoryTombstones = getStoredMapFromAny(remoteData.historyTombstones);
-                    const remoteExpenseTombstones = getStoredMapFromAny(remoteData.simpleExpenseTombstones);
-                    const remoteInventoryTombstones = getStoredMapFromAny(remoteData.inventoryTombstones);
 
                     const mergedHistoryTombstones = pruneTombstones(
-                        mergeTombstoneMaps(localHistoryTombstones, remoteHistoryTombstones),
+                        mergeTombstoneMaps(localHistoryTombstones, getStoredMapFromAny(remoteData.historyTombstones)),
                     );
                     const mergedExpenseTombstones = pruneTombstones(
-                        mergeTombstoneMaps(localExpenseTombstones, remoteExpenseTombstones),
+                        mergeTombstoneMaps(localExpenseTombstones, getStoredMapFromAny(remoteData.simpleExpenseTombstones)),
                     );
                     const mergedInventoryTombstones = pruneTombstones(
-                        mergeTombstoneMaps(getStoredMap(inventoryTombstonesKey), remoteInventoryTombstones),
+                        mergeTombstoneMaps(getStoredMap(inventoryTombstonesKey), getStoredMapFromAny(remoteData.inventoryTombstones)),
                     );
 
                     const mergedHistory = applyTombstones(
-                        mergeRecordsById(localHistory, remoteHistory),
+                        mergeRecordsById(localHistory, Array.isArray(remoteData.history) ? remoteData.history : []),
                         mergedHistoryTombstones,
                     );
                     const mergedSimpleExpenses = applyTombstones(
-                        mergeRecordsById(localSimpleExpenses, remoteSimpleExpenses),
+                        mergeRecordsById(localSimpleExpenses, Array.isArray(remoteData.simpleExpenses) ? remoteData.simpleExpenses : []),
                         mergedExpenseTombstones,
                     );
                     const mergedInventory = applyTombstones(
-                        mergeRecordsById(JSON.parse(localStorage.getItem(inventoryKey) || "[]"), remoteInventory),
+                        mergeRecordsById(JSON.parse(localStorage.getItem(inventoryKey) || "[]"), Array.isArray(remoteData.inventory) ? remoteData.inventory : []),
                         mergedInventoryTombstones,
                     );
-                    const mergedStaff = mergeStaffByName(localStaff, remoteStaff);
+                    const mergedStaff = mergeStaffByName(localStaff, Array.isArray(remoteData.staff) ? remoteData.staff : []);
                     const mergedConfig = {
                         ...(remoteData.config || {}),
                         ...config,
@@ -3333,9 +3567,9 @@
                     setStoredMap(historyTombstonesKey, mergedHistoryTombstones);
                     setStoredMap(simpleExpenseTombstonesKey, mergedExpenseTombstones);
                     setStoredMap(inventoryTombstonesKey, mergedInventoryTombstones);
-                    saveStoreScopedData(id);
 
-                    await db.collection("stores").doc(id).set({
+                    // Push to Cloud in background
+                    db.collection("stores").doc(id).set({
                         storeName: mergedConfig.name || "Unnamed Store",
                         config: mergedConfig,
                         staff: mergedStaff,
@@ -3348,16 +3582,38 @@
                         updatedAtMs: writeAt,
                         updatedBy: this.deviceId,
                         lastSync: firebase.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true });
-                    localStorage.removeItem(pendingSyncKey);
-                    localStorage.setItem(lastCloudSyncAtKey, String(Date.now()));
-                    updateSyncStatusBadge();
-                    console.log("Cloud Sync: Success");
+                    }, { merge: true }).then(() => {
+                        localStorage.removeItem(pendingSyncKey);
+                        localStorage.setItem(lastCloudSyncAtKey, String(Date.now()));
+                        updateSyncStatusBadge();
+                        if (!isSilent) console.log("Cloud Push: Complete");
+                    }).catch((error) => {
+                        console.error("Cloud Push secretly failed!", error);
+                        // REMOVE the pending lock so the UI doesn't visually freeze forever
+                        localStorage.removeItem(pendingSyncKey);
+                        updateSyncStatusBadge();
+
+                        // Alert the user so they know something failed (Quota, Document too big, etc)
+                        if (!isSilent) {
+                            const detail = String(error.message || "");
+                            if (detail.includes("too large")) {
+                                showToast("Store data exceeds 1MB cloud limit. Prune history.", true);
+                            } else if (detail.includes("permission-denied")) {
+                                showToast("Sync denied: Device not authorized.", true);
+                            } else {
+                                showToast("Sync failed: " + (detail || "Check internet"), true);
+                            }
+                        }
+                    });
+
                     return true;
                 } catch (e) {
-                    console.error("Cloud Sync Error:", e);
+                    if (!isSilent) console.error("Cloud Sync Error:", e);
+                    localStorage.removeItem(pendingSyncKey);
                     updateSyncStatusBadge();
                     return false;
+                } finally {
+                    this.isSyncing = false;
                 }
             },
 
@@ -3449,68 +3705,68 @@
                 this.stopRealtimeSync();
 
                 cloudUnsubscribe = db.collection("stores").doc(storeId).onSnapshot(
-                    (doc) => {
+                    async (doc) => {
                         if (!doc.exists) return;
-
-                        // If local has unsynced edits, push those first instead of applying stale cloud data.
-                        if (localStorage.getItem(pendingSyncKey) === "1") {
-                            this.syncToCloud();
-                            return;
-                        }
 
                         const data = doc.data() || {};
                         const remoteUpdatedAt = Number(data.updatedAtMs || 0);
                         const remoteUpdatedBy = data.updatedBy || "";
 
-                        // Ignore own write echoes and already-applied snapshots.
-                        if (
-                            (remoteUpdatedBy === this.deviceId &&
-                                remoteUpdatedAt === this.lastLocalWriteAt) ||
-                            remoteUpdatedAt <= this.lastAppliedRemoteAt
-                        ) {
+                        // Anti-loop Check (Immediate)
+                        if (remoteUpdatedBy === this.deviceId) {
+                            this.lastAppliedRemoteAt = Math.max(this.lastAppliedRemoteAt, remoteUpdatedAt);
+                            updateSyncStatusBadge();
                             return;
                         }
+                        if (remoteUpdatedAt <= this.lastAppliedRemoteAt) return;
 
-                        const remoteHistory = Array.isArray(data.history) ? data.history : [];
-                        const remoteExpenses = Array.isArray(data.simpleExpenses) ? data.simpleExpenses : [];
-                        const remoteInventory = Array.isArray(data.inventory) ? data.inventory : [];
-                        const remoteHistoryTombstones = getStoredMapFromAny(data.historyTombstones);
-                        const remoteExpenseTombstones = getStoredMapFromAny(data.simpleExpenseTombstones);
-                        const remoteInventoryTombstones = getStoredMapFromAny(data.inventoryTombstones);
-                        const mergedHistoryTombstones = pruneTombstones(
-                            mergeTombstoneMaps(getStoredMap(historyTombstonesKey), remoteHistoryTombstones),
-                        );
-                        const mergedExpenseTombstones = pruneTombstones(
-                            mergeTombstoneMaps(getStoredMap(simpleExpenseTombstonesKey), remoteExpenseTombstones),
-                        );
-                        const mergedInventoryTombstones = pruneTombstones(
-                            mergeTombstoneMaps(getStoredMap(inventoryTombstonesKey), remoteInventoryTombstones),
-                        );
+                        // Debounce handling: Batch rapid changes and keep UI responsive
+                        if (this._syncDebounceTimer) clearTimeout(this._syncDebounceTimer);
+                        this._syncDebounceTimer = setTimeout(async () => {
+                            if (localStorage.getItem(pendingSyncKey) === "1" && !this.isSyncing) {
+                                this.syncToCloud({ silent: true });
+                            }
 
-                        if (data.config) localStorage.setItem(bizKey, JSON.stringify(data.config));
-                        localStorage.setItem(
-                            historyKey,
-                            JSON.stringify(applyTombstones(remoteHistory, mergedHistoryTombstones)),
-                        );
-                        localStorage.setItem(staffKey, JSON.stringify(Array.isArray(data.staff) ? data.staff : []));
-                        localStorage.setItem(
-                            simpleExpenseKey,
-                            JSON.stringify(applyTombstones(remoteExpenses, mergedExpenseTombstones)),
-                        );
-                        localStorage.setItem(
-                            inventoryKey,
-                            JSON.stringify(applyTombstones(remoteInventory, mergedInventoryTombstones)),
-                        );
-                        setStoredMap(historyTombstonesKey, mergedHistoryTombstones);
-                        setStoredMap(simpleExpenseTombstonesKey, mergedExpenseTombstones);
-                        setStoredMap(inventoryTombstonesKey, mergedInventoryTombstones);
-                        saveStoreScopedData(storeId);
+                            const remoteHistory = Array.isArray(data.history) ? data.history : [];
+                            const remoteExpenses = Array.isArray(data.simpleExpenses) ? data.simpleExpenses : [];
+                            const remoteInventory = Array.isArray(data.inventory) ? data.inventory : [];
+                            const remoteHistoryTombstones = getStoredMapFromAny(data.historyTombstones);
+                            const remoteExpenseTombstones = getStoredMapFromAny(data.simpleExpenseTombstones);
+                            const remoteInventoryTombstones = getStoredMapFromAny(data.inventoryTombstones);
+                            const mergedHistoryTombstones = pruneTombstones(
+                                mergeTombstoneMaps(getStoredMap(historyTombstonesKey), remoteHistoryTombstones),
+                            );
+                            const mergedExpenseTombstones = pruneTombstones(
+                                mergeTombstoneMaps(getStoredMap(simpleExpenseTombstonesKey), remoteExpenseTombstones),
+                            );
+                            const mergedInventoryTombstones = pruneTombstones(
+                                mergeTombstoneMaps(getStoredMap(inventoryTombstonesKey), remoteInventoryTombstones),
+                            );
 
-                        this.lastAppliedRemoteAt = remoteUpdatedAt;
-                        localStorage.setItem(lastCloudSyncAtKey, String(Date.now()));
-                        this.refreshUiFromLocal();
-                        updateSyncStatusBadge();
-                        showToast("Cloud update received");
+                            if (data.config) localStorage.setItem(bizKey, JSON.stringify(data.config));
+                            localStorage.setItem(
+                                historyKey,
+                                JSON.stringify(applyTombstones(remoteHistory, mergedHistoryTombstones)),
+                            );
+                            localStorage.setItem(staffKey, JSON.stringify(Array.isArray(data.staff) ? data.staff : []));
+                            localStorage.setItem(
+                                simpleExpenseKey,
+                                JSON.stringify(applyTombstones(remoteExpenses, mergedExpenseTombstones)),
+                            );
+                            localStorage.setItem(
+                                inventoryKey,
+                                JSON.stringify(applyTombstones(remoteInventory, mergedInventoryTombstones)),
+                            );
+                            setStoredMap(historyTombstonesKey, mergedHistoryTombstones);
+                            setStoredMap(simpleExpenseTombstonesKey, mergedExpenseTombstones);
+                            setStoredMap(inventoryTombstonesKey, mergedInventoryTombstones);
+
+                            this.lastAppliedRemoteAt = remoteUpdatedAt;
+                            localStorage.setItem(lastCloudSyncAtKey, String(Date.now()));
+                            this.refreshUiFromLocal();
+                            updateSyncStatusBadge();
+                            showToast("Cloud update received");
+                        }, 100);
                     },
                     (error) => {
                         console.warn("Realtime sync listener error:", error);
@@ -3522,6 +3778,7 @@
         const LicenseManager = {
             isActive: false,
             cloudEnabled: false,
+            _purgeCooldowns: {}, // Store-based cooldowns to prevent sync loops
 
             stopRealtimeLicenseWatch() {
                 if (licenseUnsubscribe) {
@@ -3724,78 +3981,149 @@
             },
 
             async ensureDeviceAccess(storeId) {
-                if (!db || !storeId) {
-                    return { allowed: false, reason: "invalid_store", maxDevices: 0 };
-                }
-                const deviceId = String(CloudManager.deviceId || "").trim();
-                if (!deviceId) {
-                    return { allowed: false, reason: "missing_device_id", maxDevices: 0 };
-                }
+                if (!db || !storeId) return { allowed: false, reason: "invalid_params" };
+                const deviceId = String(CloudManager.deviceId || "").trim().toUpperCase();
+                if (!deviceId) return { allowed: false, reason: "missing_device_id" };
                 const ref = db.collection("licenses").doc(storeId);
-                const computeFlags = this.getLicenseFlags.bind(this);
+
                 try {
+                    const snap = await ref.get();
+                    if (!snap.exists) return { allowed: false, reason: "license_missing" };
+
+                    const data = snap.data() || {};
+                    const blocked = Array.isArray(data.blockedDevices) ? data.blockedDevices.map(x => String(x).trim().toUpperCase()) : [];
+
+                    // NEW HOUSE: We now use 'authorizedRegistry' (Map). Old apps use 'allowedDevices' (Array).
+                    let registry = data.authorizedRegistry || {};
+
+                    // If we don't have the new registry yet, trigger a migration check
+                    if (Object.keys(registry).length === 0 || Array.isArray(data.allowedDevices)) {
+                        this.purgeInconsistentRegistry(storeId);
+                        // If it's the very first time, we might need to look at the old list for a second
+                        if (Array.isArray(data.allowedDevices)) {
+                            const legacy = data.allowedDevices.map(x => String(x).trim().toUpperCase());
+                            if (legacy.includes(deviceId) && !blocked.includes(deviceId)) {
+                                return { allowed: true, maxDevices: Number(data.maxDevices) || 0, usedDevices: legacy.length };
+                            }
+                        }
+                    }
+
+                    const authorizedIds = Object.keys(registry).map(x => x.toUpperCase());
+                    const maxDevices = Number(data.maxDevices) || 0;
+
+                    if (blocked.includes(deviceId)) {
+                        return { allowed: false, reason: "device_permanently_blocked", maxDevices, usedDevices: authorizedIds.length };
+                    }
+
+                    if (registry[deviceId]) {
+                        // Refresh timestamp for active device to keep it alive (Rolling 72hrs)
+                        const lastAuth = Number(registry[deviceId]);
+                        if (!lastAuth || Date.now() - lastAuth > 3600000) { // Refresh once per hour
+                            this.refreshAuthorization(storeId, deviceId);
+                        }
+                        return { allowed: true, maxDevices, usedDevices: authorizedIds.length };
+                    }
+
                     return await db.runTransaction(async (tx) => {
-                        const snap = await tx.get(ref);
-                        if (!snap.exists) {
-                            return { allowed: false, reason: "license_missing", maxDevices: 0 };
-                        }
-                        const data = snap.data() || {};
-                        const flags = computeFlags(data);
-                        if (!flags.active || !flags.cloudEnabled) {
-                            return {
-                                allowed: false,
-                                reason: "license_not_cloud",
-                                maxDevices: flags.maxDevices || 0,
-                            };
+                        const tSnap = await tx.get(ref);
+                        const tData = tSnap.data() || {};
+                        const tBlocked = Array.isArray(tData.blockedDevices) ? tData.blockedDevices.map(x => String(x).trim().toUpperCase()) : [];
+                        let tRegistry = tData.authorizedRegistry || {};
+
+                        if (tBlocked.includes(deviceId)) return { allowed: false, reason: "device_permanently_blocked" };
+                        if (tRegistry[deviceId]) return { allowed: true };
+
+                        const usedCount = Object.keys(tRegistry).length;
+                        if (maxDevices > 0 && usedCount >= maxDevices) {
+                            return { allowed: false, reason: "max_devices_reached", maxDevices, usedDevices: usedCount };
                         }
 
-                        const maxDevices = flags.maxDevices || 0;
-                        if (maxDevices <= 0) {
-                            return { allowed: true, reason: "unlimited", maxDevices: 0 };
-                        }
+                        const updateObj = { updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+                        updateObj[`authorizedRegistry.${deviceId}`] = Date.now(); // Store current timestamp
 
-                        const current = Array.isArray(data.allowedDevices)
-                            ? data.allowedDevices.map((x) => String(x))
-                            : [];
-                        const unique = [...new Set(current)];
-
-                        if (unique.includes(deviceId)) {
-                            return {
-                                allowed: true,
-                                reason: "already_allowed",
-                                maxDevices,
-                                usedDevices: unique.length,
-                            };
-                        }
-                        if (unique.length >= maxDevices) {
-                            return {
-                                allowed: false,
-                                reason: "max_devices_reached",
-                                maxDevices,
-                                usedDevices: unique.length,
-                            };
-                        }
-
-                        unique.push(deviceId);
-                        tx.set(
-                            ref,
-                            {
-                                allowedDevices: unique,
-                                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            },
-                            { merge: true },
-                        );
-                        return {
-                            allowed: true,
-                            reason: "added",
-                            maxDevices,
-                            usedDevices: unique.length,
-                        };
+                        tx.update(ref, updateObj);
+                        return { allowed: true, maxDevices, usedDevices: usedCount + 1 };
                     });
                 } catch (e) {
                     console.warn("Device access check failed:", e);
-                    return { allowed: false, reason: "device_check_failed", maxDevices: 0 };
+                    return { allowed: false, reason: "network_error" };
                 }
+            },
+
+            _purgeCooldowns: {}, // Cooldown map for purgeInconsistentRegistry
+
+            async purgeInconsistentRegistry(storeId) {
+                if (!db || !storeId || !navigator.onLine) return;
+
+                // QUOTA SAFETY: Only perform cleanup once every 4 hours. 
+                // Fighting "ghost apps" in a loop will exhaust your Firebase free quota.
+                const now = Date.now();
+                const lastPurge = this._purgeCooldowns[storeId] || 0;
+                const CLEANUP_THROTTLE = 4 * 60 * 60 * 1000; // 4 Hour Cooldown
+
+                if (now - lastPurge < CLEANUP_THROTTLE) return;
+                this._purgeCooldowns[storeId] = now;
+
+                try {
+                    console.log("Cloud Sentry: Performing throttled registry cleanup...");
+                    const ref = db.collection("licenses").doc(storeId);
+                    await db.runTransaction(async (tx) => {
+                        const tSnap = await tx.get(ref);
+                        if (!tSnap.exists) return;
+                        const tData = tSnap.data() || {};
+                        const blocked = Array.isArray(tData.blockedDevices) ? tData.blockedDevices.map(x => String(x).trim().toUpperCase()) : [];
+                        const nowMs = Date.now();
+                        const EXPIRY_MS = 72 * 60 * 60 * 1000;
+
+                        let registry = tData.authorizedRegistry || {};
+                        let needsUpdate = false;
+
+                        // 1. One-time Migration from legacy field (if it exists)
+                        if (Array.isArray(tData.allowedDevices)) {
+                            tData.allowedDevices.forEach(id => {
+                                const dId = String(id || "").trim().toUpperCase();
+                                if (dId && !blocked.includes(dId)) registry[dId] = Date.now();
+                            });
+                            needsUpdate = true;
+                        }
+
+                        // 2. Clear Blocked & Expired
+                        for (const id in registry) {
+                            const uId = id.toUpperCase();
+                            const authTime = Number(registry[id]) || 0;
+                            const isBlocked = blocked.includes(uId);
+                            const isExpired = authTime > 0 && (nowMs - authTime > EXPIRY_MS);
+                            if (isBlocked || isExpired) {
+                                delete registry[id];
+                                needsUpdate = true;
+                            }
+                        }
+
+                        if (needsUpdate) {
+                            const updateObj = {
+                                authorizedRegistry: registry,
+                                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                            };
+                            // Only delete if it's currently an array (don't waste writes if it's already gone)
+                            if (Array.isArray(tData.allowedDevices)) {
+                                updateObj.allowedDevices = firebase.firestore.FieldValue.delete();
+                            }
+                            tx.update(ref, updateObj);
+                        }
+                    });
+                } catch (e) {
+                    console.warn("Throttled purge skipped (likely quota or offline):", e);
+                }
+            },
+
+            async refreshAuthorization(storeId, deviceId) {
+                if (!db || !storeId || !deviceId || !navigator.onLine) return;
+                try {
+                    const ref = db.collection("licenses").doc(storeId);
+                    const updateObj = {};
+                    updateObj[`authorizedRegistry.${deviceId.toUpperCase()}`] = Date.now();
+                    await ref.update(updateObj);
+                } catch (e) { }
             },
 
             async activate(storeId, precheckedRec = null) {
@@ -3819,12 +4147,13 @@
                     if (!gate.allowed) {
                         cloudEnabled = false;
                         localStorage.setItem(licenseDeviceBlockedKey, "1");
-                        showToast(
-                            gate.reason === "max_devices_reached"
-                                ? `Cloud sync blocked: device limit (${gate.maxDevices}) reached`
-                                : "Cloud sync unavailable on this device",
-                            true,
-                        );
+                        let blockedMsg = "Cloud sync unavailable on this device";
+                        if (gate.reason === "max_devices_reached") {
+                            blockedMsg = `Cloud sync blocked: device limit (${gate.maxDevices}) reached`;
+                        } else if (gate.reason === "device_permanently_blocked") {
+                            blockedMsg = "This device has been permanently blocked by the Admin.";
+                        }
+                        showToast(blockedMsg, true);
                     } else {
                         localStorage.removeItem(licenseDeviceBlockedKey);
                     }
@@ -3837,6 +4166,7 @@
                 if (this.cloudEnabled) {
                     CloudManager.startRealtimeSync(id);
                     await CloudManager.syncFromCloud(id);
+                    this.purgeInconsistentRegistry(id); // Police the registry after activation
                 } else {
                     CloudManager.stopRealtimeSync();
                     saveStoreScopedData(id);
@@ -3863,6 +4193,7 @@
                         CloudManager.startRealtimeSync(existing);
                         // Trigger initial sync in background
                         CloudManager.syncFromCloud(existing);
+                        this.purgeInconsistentRegistry(existing); // Periodic background cleanup
                     }
                 }
 
@@ -3937,10 +4268,10 @@
             if (!show) return;
             const blocked = localStorage.getItem(licenseDeviceBlockedKey) === "1";
             const msgPrimary = blocked
-                ? "Cloud sync unavailable: max device limit reached."
+                ? "Cloud sync restricted: Check Device Management."
                 : "Cloud sync is disabled on this account plan.";
             const msgSecondary = blocked
-                ? "Contact creator to remove an old device or upgrade plan."
+                ? "Contact admin or check 'Manage Devices' to restore access."
                 : "kindly subscribe or contact creator to enable cloud sync.";
             const spans = notice.querySelectorAll(".cloud-sync-notice-track span");
             if (spans.length >= 1) spans[0].innerText = msgPrimary;
@@ -4085,17 +4416,20 @@
 
             const queueCount = getSyncQueue().length;
             const pendingWrite = localStorage.getItem(pendingSyncKey) === "1";
-            if (!navigator.onLine) {
-                badge.classList.add("offline");
-                badge.innerText = `Sync: Offline${queueCount > 0 ? ` (${queueCount})` : ""}`;
+
+            // If we have something to sync, show Pending, even if navigator thinks we're offline
+            if (queueCount > 0 || pendingWrite) {
+                badge.classList.add("pending");
+                badge.innerText = `Sync: Pending (${Math.max(queueCount, 1)})`;
                 refreshStoreContextUi();
                 refreshDiagnosticsPanel();
                 return;
             }
 
-            if (queueCount > 0 || pendingWrite) {
-                badge.classList.add("pending");
-                badge.innerText = `Sync: Pending (${Math.max(queueCount, 1)})`;
+            // No pending work. Now check onLine for the "Synced" vs "Offline" status.
+            if (!navigator.onLine) {
+                badge.classList.add("offline");
+                badge.innerText = `Sync: Offline`;
                 refreshStoreContextUi();
                 refreshDiagnosticsPanel();
                 return;
@@ -4122,18 +4456,17 @@
                 return false;
             }
             enqueueSync(type);
-            if (!navigator.onLine) return false;
-            const ok = await CloudManager.syncToCloud();
-            if (ok) {
-                clearSyncQueue();
-                return true;
-            }
-            updateSyncStatusBadge();
-            return false;
+
+            // Perform in background to avoid blocking UI/Login speed
+            CloudManager.syncToCloud({ silent: true }).then(ok => {
+                if (ok) clearSyncQueue();
+                updateSyncStatusBadge();
+            });
+            return true;
         }
 
         async function processSyncQueue() {
-            if (!LicenseManager.cloudEnabled || !navigator.onLine) {
+            if (!LicenseManager.cloudEnabled) {
                 updateSyncStatusBadge();
                 return;
             }
@@ -4145,6 +4478,23 @@
             const ok = await CloudManager.syncToCloud();
             if (ok) clearSyncQueue();
             updateSyncStatusBadge();
+        }
+
+        async function forceSyncNow() {
+            if (!LicenseManager.cloudEnabled) return showToast("Cloud sync is not enabled", true);
+            const storeId = localStorage.getItem(storeIdKey);
+            if (!storeId) return showToast("No Store ID linked", true);
+
+            showToast("Retrying sync...");
+
+            // Attempt bidirectional sync regardless of navigator.onLine
+            const pushOk = await CloudManager.syncToCloud();
+            if (pushOk) clearSyncQueue();
+
+            await CloudManager.syncFromCloud(storeId);
+
+            updateSyncStatusBadge();
+            showToast("Sync refreshed");
         }
 
         function closeDayReport() {
@@ -4519,40 +4869,76 @@
                 const maxRaw = Number(data.maxDevices);
                 const maxDevices =
                     Number.isFinite(maxRaw) && maxRaw > 0 ? Math.floor(maxRaw) : 0;
-                const devices = Array.isArray(data.allowedDevices)
-                    ? [...new Set(data.allowedDevices.map((x) => String(x || "").trim()).filter(Boolean))]
+
+                const blockedDevices = Array.isArray(data.blockedDevices)
+                    ? [...new Set(data.blockedDevices.map((x) => String(x || "").trim().toUpperCase()).filter(Boolean))]
                     : [];
-                const currentDevice = String(CloudManager.deviceId || "");
+
+                // Use new 'authorizedRegistry' field mainly, fallback to old 'allowedDevices' during migration
+                let devices = [];
+                const registry = data.authorizedRegistry || {};
+                if (Object.keys(registry).length > 0) {
+                    devices = Object.keys(registry).map(x => x.toUpperCase()).filter(id => !blockedDevices.includes(id));
+                } else if (Array.isArray(data.allowedDevices)) {
+                    devices = data.allowedDevices.map(x => String(x || "").trim().toUpperCase()).filter(id => id && !blockedDevices.includes(id));
+                }
+
+                const currentDevice = String(CloudManager.deviceId || "").trim().toUpperCase();
 
                 summary.innerHTML =
                     `<strong>Store:</strong> ${storeId} ` +
-                    `| <strong>Registered:</strong> ${devices.length} ` +
+                    `| <strong>Active:</strong> ${devices.length} ` +
                     `| <strong>Max:</strong> ${maxDevices > 0 ? maxDevices : "Unlimited"} ` +
-                    `| <strong>This Device:</strong> ${currentDevice}`;
+                    `| <strong>Blocked:</strong> ${blockedDevices.length}`;
 
+                let html = '<div style="margin-bottom:12px;"><h4 style="margin:0 0 8px; font-size:13px; color:var(--primary);">Authorized Devices</h4>';
                 if (devices.length === 0) {
-                    list.innerHTML =
-                        '<div style="text-align:center; color: var(--text-muted); padding: 20px;">No registered devices yet.</div>';
-                    return;
-                }
-
-                list.innerHTML = devices
-                    .map((deviceId) => {
+                    html += '<div style="text-align:center; color: var(--text-muted); padding: 10px; font-size:11px;">No authorized devices.</div>';
+                } else {
+                    html += devices.map((deviceId) => {
                         const isCurrent = deviceId === currentDevice;
                         return `
-                            <div class="history-card" style="cursor: default;">
+                            <div class="history-card" style="cursor: default; padding: 10px; margin-bottom: 6px; border-left: 3px solid ${isCurrent ? 'var(--primary)' : '#e2e8f0'}">
                                 <div class="meta" style="flex:1;">
                                     <strong>${deviceId}</strong><br>
-                                    <small>${isCurrent ? "Current device" : "Registered device"}</small>
+                                    <small>${isCurrent ? "THIS DEVICE (Current Session)" : "Remote / Secondary Device"}</small>
                                 </div>
-                                <button class="secondary" style="padding: 6px 10px; font-size: 11px; color:#ef4444; border-color:#fee2e2;"
-                                    onclick="removeRegisteredDevice('${deviceId.replace(/'/g, "\\'")}')">
-                                    <i data-lucide="trash-2" style="width: 12px"></i> Remove
+                                <div style="display:flex; gap:6px;">
+                                    <button class="secondary" style="padding: 4px 8px; font-size: 10px; border-color:#cbd5e1;"
+                                        onclick="removeRegisteredDevice('${deviceId.replace(/'/g, "\\'")}', false)">
+                                        Remove
+                                    </button>
+                                    <button class="secondary" style="padding: 4px 8px; font-size: 10px; color:#ef4444; border-color:#fee2e2;"
+                                        onclick="removeRegisteredDevice('${deviceId.replace(/'/g, "\\'")}', true)">
+                                        Block
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join("");
+                }
+                html += '</div>';
+
+                if (blockedDevices.length > 0) {
+                    html += '<div><h4 style="margin:16px 0 8px; font-size:13px; color:#ef4444;">Blocked Devices (No Sync Access)</h4>';
+                    html += blockedDevices.map((deviceId) => {
+                        return `
+                            <div class="history-card" style="cursor: default; padding: 10px; margin-bottom: 6px; background: #fff1f2; border-color: #fecaca;">
+                                <div class="meta" style="flex:1;">
+                                    <strong style="color:#991b1b;">${deviceId}</strong><br>
+                                    <small style="color:#b91c1c;">Permanently blocked from cloud registry</small>
+                                </div>
+                                <button class="secondary" style="padding: 4px 8px; font-size: 10px; color:#059669; border-color:#a7f3d0;"
+                                    onclick="unblockDevice('${deviceId.replace(/'/g, "\\'")}')">
+                                    Restore Access
                                 </button>
                             </div>
                         `;
-                    })
-                    .join("");
+                    }).join("");
+                    html += '</div>';
+                }
+
+                list.innerHTML = html;
 
                 if (window.lucide) lucide.createIcons();
             } catch (e) {
@@ -4562,41 +4948,108 @@
             }
         }
 
-        async function removeRegisteredDevice(deviceId) {
-            if (!requireAdmin("managing devices")) return;
+        async function unblockDevice(deviceId) {
+            if (!requireAdmin("unblocking devices")) return;
             const storeId = localStorage.getItem(storeIdKey) || "";
             if (!storeId || !deviceId) return;
-            if (!navigator.onLine) return showToast("Go online to remove devices", true);
-            if (!db) return showToast("Cloud service unavailable", true);
-
-            const isCurrent = String(deviceId) === String(CloudManager.deviceId || "");
-            const msg = isCurrent
-                ? "Remove this current device from cloud registry? This device may lose cloud sync until re-authorized."
-                : `Remove device ${deviceId}?`;
-            if (!confirm(msg)) return;
+            if (!confirm(`Restore access for device ${deviceId}?`)) return;
 
             try {
                 const ref = db.collection("licenses").doc(storeId);
-                const snap = await ref.get();
-                if (!snap.exists) return showToast("License record not found", true);
-                const data = snap.data() || {};
-                const current = Array.isArray(data.allowedDevices)
-                    ? data.allowedDevices.map((x) => String(x))
-                    : [];
-                const next = [...new Set(current)].filter((x) => x !== String(deviceId));
-                await ref.set(
-                    {
-                        allowedDevices: next,
+                await db.runTransaction(async (tx) => {
+                    const snap = await tx.get(ref);
+                    if (!snap.exists) throw new Error("license_missing");
+                    const d = snap.data() || {};
+                    const dId = deviceId.trim().toUpperCase(); // Corrected: use deviceId from function param
+
+                    const blocked = Array.isArray(d.blockedDevices) ? d.blockedDevices.map(x => String(x).trim().toUpperCase()) : [];
+                    const allowed = Array.isArray(d.allowedDevices) ? d.allowedDevices.map(x => String(x).trim().toUpperCase()) : [];
+                    let registry = d.authorizedRegistry || {};
+
+                    const nextBlocked = blocked.filter(x => x !== dId); // Filter out the device to unblock
+
+                    // If device was in legacy allowedDevices, ensure it's not re-added by mistake
+                    const nextAllowed = allowed.filter(x => x !== dId);
+
+                    // If device was in new registry, ensure it's not re-added by mistake
+                    if (registry[dId]) delete registry[dId];
+
+                    const updateObj = {
+                        blockedDevices: nextBlocked,
+                        // Only delete allowedDevices if it becomes empty, otherwise keep it updated for legacy apps
+                        allowedDevices: nextAllowed.length > 0 ? nextAllowed : firebase.firestore.FieldValue.delete(),
+                        authorizedRegistry: registry, // Keep registry updated
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+
+                    tx.update(ref, updateObj);
+                });
+                showToast("Device unblocked");
+                renderDeviceManager();
+            } catch (e) {
+                console.warn("Failed to unblock device:", e);
+                showToast("Failed to unblock device", true);
+            }
+        }
+
+        async function removeRegisteredDevice(deviceId, block = false) {
+            if (!requireAdmin("managing devices")) return;
+            const storeId = localStorage.getItem(storeIdKey) || "";
+            if (!storeId || !deviceId) return;
+            if (!navigator.onLine) return showToast("Go online to manage devices", true);
+            if (!db) return showToast("Cloud service unavailable", true);
+
+            const isCurrent = String(deviceId) === String(CloudManager.deviceId || "");
+            const actionLabel = block ? "BLOCK" : "REMOVE";
+            const msg = block
+                ? `PERMANENTLY BLOCK device ${deviceId}? It will never be able to re-link to this store unless you unblock it.`
+                : `Remove device ${deviceId}? (It can re-link if it has the setup key).`;
+
+            if (isCurrent && !confirm(`${msg}\n\nWARNING: This is YOUR current device. Sync will stop immediately.`)) return;
+            if (!isCurrent && !confirm(msg)) return;
+
+            try {
+                const ref = db.collection("licenses").doc(storeId);
+                await db.runTransaction(async (tx) => {
+                    const snap = await tx.get(ref);
+                    if (!snap.exists) throw new Error("license_missing");
+                    const data = snap.data() || {};
+                    const idUpper = String(deviceId).trim().toUpperCase();
+
+                    const currentLegacy = Array.isArray(data.allowedDevices) ? data.allowedDevices : [];
+                    const nextLegacy = currentLegacy.filter((x) => String(x).toUpperCase() !== idUpper);
+                    let registry = data.authorizedRegistry || {};
+
+                    if (registry[idUpper]) {
+                        delete registry[idUpper];
+                    }
+
+                    const updateObj = {
+                        authorizedRegistry: registry,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    },
-                    { merge: true },
-                );
-                showToast("Device removed");
+                    };
+
+                    if (nextLegacy.length > 0) {
+                        updateObj.allowedDevices = nextLegacy;
+                    } else if (currentLegacy.length > 0) {
+                        updateObj.allowedDevices = firebase.firestore.FieldValue.delete();
+                    }
+
+                    if (block) {
+                        const blocked = Array.isArray(data.blockedDevices) ? data.blockedDevices : [];
+                        const nextBlocked = [...new Set([...blocked, idUpper])];
+                        updateObj.blockedDevices = nextBlocked;
+                    }
+
+                    tx.update(ref, updateObj);
+                });
+
+                showToast(block ? "Device blocked" : "Device removed");
                 await LicenseManager.enforceAtStartup();
                 renderDeviceManager();
             } catch (e) {
-                console.warn("Remove device failed:", e);
-                showToast("Failed to remove device", true);
+                console.warn("Device action failed:", e);
+                showToast("Failed to process request", true);
             }
         }
 
@@ -4614,10 +5067,7 @@
 
         function resetSimpleExpenseForm() {
             const today = new Date();
-            const y = today.getFullYear();
-            const m = String(today.getMonth() + 1).padStart(2, "0");
-            const d = String(today.getDate()).padStart(2, "0");
-            if ($("simpleExpenseDate")) $("simpleExpenseDate").value = `${y}-${m}-${d}`;
+            if ($("simpleExpenseDate")) $("simpleExpenseDate").value = formatInputDate(today);
             if ($("simpleExpenseCategory")) $("simpleExpenseCategory").value = "Utilities";
             if ($("simpleExpenseTitle")) $("simpleExpenseTitle").value = "";
             if ($("simpleExpenseAmount")) $("simpleExpenseAmount").value = "";
@@ -4786,6 +5236,86 @@
             URL.revokeObjectURL(url);
         }
 
+        function openExpenseAnalysis() {
+            if ($("expenseAnalysisOverlay")) $("expenseAnalysisOverlay").style.display = "flex";
+            renderExpenseAnalysis();
+        }
+
+        function closeExpenseAnalysis() {
+            if ($("expenseAnalysisOverlay")) $("expenseAnalysisOverlay").style.display = "none";
+        }
+
+        function renderExpenseAnalysis() {
+            const stats = $("expenseAnalysisStats");
+            const list = $("expenseAnalysisList");
+            const timeframe = $("expenseAnalysisTimeframe")?.value || "all";
+            if (!stats || !list) return;
+
+            const allExpenses = getSimpleExpenses();
+            const now = new Date();
+            const cutoff = timeframe === "all" ? null : new Date(now.getTime() - (parseInt(timeframe) * 24 * 60 * 60 * 1000));
+
+            const expenses = allExpenses.filter(x => {
+                if (!cutoff) return true;
+                const d = new Date(x.date);
+                return d >= cutoff;
+            });
+
+            const groups = {};
+            expenses.forEach(x => {
+                const rawTitle = (x.title || "Other").trim();
+                const key = rawTitle.toLowerCase();
+                if (!groups[key]) {
+                    groups[key] = {
+                        title: rawTitle, // Keep first instance casing
+                        count: 0,
+                        total: 0,
+                        lastDate: x.date
+                    };
+                }
+                groups[key].count++;
+                groups[key].total += parseFloat(x.amount || 0);
+                if (new Date(x.date) > new Date(groups[key].lastDate)) groups[key].lastDate = x.date;
+            });
+
+            const sorted = Object.values(groups).sort((a, b) => b.total - a.total);
+            const totalCost = expenses.reduce((acc, x) => acc + parseFloat(x.amount || 0), 0);
+
+            stats.innerHTML = `
+                <div style="text-align: center;">
+                    <div style="font-size: 10px; color: var(--text-muted); font-weight: bold; text-transform: uppercase;">Total Spent</div>
+                    <div style="font-size: 18px; font-weight: 800; color: var(--primary);">₦${totalCost.toLocaleString()}</div>
+                </div>
+                <div style="text-align: center; border-left: 1px solid var(--border);">
+                    <div style="font-size: 10px; color: var(--text-muted); font-weight: bold; text-transform: uppercase;">Expense Types</div>
+                    <div style="font-size: 18px; font-weight: 800; color: #6366f1;">${sorted.length}</div>
+                </div>
+            `;
+
+            if (sorted.length === 0) {
+                list.innerHTML = `<div style="text-align:center; color: var(--text-muted); padding: 40px;">No repeated pattern found in this period.</div>`;
+                return;
+            }
+
+            list.innerHTML = sorted.map(g => `
+                <div class="history-card" style="cursor: default; background: #fff; border-left: 4px solid ${g.count > 1 ? '#10b981' : 'var(--border)'}">
+                    <div class="meta" style="flex: 1;">
+                        <strong style="font-size: 14px;">${g.title}</strong>
+                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                            ${g.count} occurrence${g.count > 1 ? 's' : ''} | Last: ${g.lastDate}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="total" style="font-size: 16px;">₦${g.total.toLocaleString()}</div>
+                        <div style="font-size: 10px; color: var(--text-muted); font-weight: 600;">Subtotal</div>
+                    </div>
+                </div>
+            `).join("");
+
+            if (window.lucide) lucide.createIcons();
+        }
+
+
         function copyStoreId() {
             const el = $("setup-store-id");
             if (el && el.value) {
@@ -4921,7 +5451,7 @@
                         status: "active",
                         cloudSync: false,
                         maxDevices: 2,
-                        allowedDevices: [],
+                        authorizedRegistry: {},
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                         createdByDevice: CloudManager.deviceId || "",
@@ -4973,40 +5503,48 @@
                 .trim()
                 .toUpperCase();
             if (!targetId) return showToast("Enter a valid Store ID", true);
-            setActivationStatusText("Validating license...");
-            const preview = await LicenseManager.validateStoreId(targetId);
-            if (preview.error) {
-                setActivationStatusText(
-                    "Could not verify Store ID right now. Check internet and try again.",
-                    true,
-                );
-                showToast("Cloud verification unavailable", true);
-                return;
-            }
-            if (!preview.flags.active) {
-                setActivationStatusText(
-                    "Activation failed. Contact creator for a valid active Store ID.",
-                    true,
-                );
-                showToast("License inactive or invalid Store ID", true);
-                return;
-            }
-            if (!preview.flags.cloudEnabled && !skipCloudSyncPrompt) {
-                const proceedLocal = confirm(
-                    "CloudSync is not activated on this account. Do you want to proceed in Local Mode?",
-                );
-                if (!proceedLocal) {
-                    setActivationStatusText("Activation cancelled.", false);
+            setActivationStatusText("Verifying security...");
+
+            // Optimized: Parallelize License Validation and Security Key check
+            try {
+                const [preview, storeDoc] = await Promise.all([
+                    LicenseManager.validateStoreId(targetId),
+                    db.collection("stores").doc(targetId).get()
+                ]);
+
+                if (preview.error) throw new Error("verification_failed");
+
+                if (storeDoc.exists) {
+                    const config = (storeDoc.data() || {}).config || {};
+                    if (config.setupKey) {
+                        const userProvidedKey = source === "login" ? ($("loginStoreSecurityKey")?.value || "") : "";
+                        if (source === "login") {
+                            if (!userProvidedKey) {
+                                setActivationStatusText("Setup Key Required.", true);
+                                return;
+                            }
+                            if (userProvidedKey !== config.setupKey) {
+                                setActivationStatusText("Setup Key Incorrect.", true);
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                if (!preview.flags.active) {
+                    setActivationStatusText("License invalid or inactive.", true);
                     return;
                 }
-            }
-            const ok = await LicenseManager.activate(targetId, preview);
-            if (!ok) {
-                setActivationStatusText(
-                    "Activation failed. Contact creator for a valid active Store ID.",
-                    true,
-                );
-                showToast("License inactive or invalid Store ID", true);
+
+                // Proceed to activation
+                const ok = await LicenseManager.activate(targetId, preview);
+                if (!ok) {
+                    setActivationStatusText("Activation failed.", true);
+                    return;
+                }
+            } catch (e) {
+                console.warn("Activation sequence failed:", e);
+                setActivationStatusText("Verification failed. Check internet.", true);
                 return;
             }
             if (loginInput) loginInput.value = targetId;
@@ -5135,11 +5673,7 @@
                 console.error("Unhandled Promise Rejection:", event.reason);
             });
             const now = new Date();
-            if ($("date"))
-                $("date").value = now.toLocaleString("en-NG", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                });
+            if ($("date")) $("date").value = formatInputDate(now);
 
             loadBusinessConfig();
             showActivationHome();
@@ -5202,9 +5736,12 @@
             updateInventoryBadge();
             if (window.lucide) lucide.createIcons();
 
+            // Background update check for native build
+            const isNative = (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() !== 'web');
+            if (isNative) forceUpdate(true);
         }
 
-        async function forceUpdate() {
+        async function forceUpdate(silent = false) {
             const isNativeAndroid =
                 !!window.Capacitor &&
                 typeof window.Capacitor.getPlatform === "function" &&
@@ -5212,18 +5749,18 @@
 
             if (isNativeAndroid) {
                 if (!APK_UPDATE_MANIFEST_URL) {
-                    showToast("Updater URL not configured", true);
+                    if (!silent) showToast("Updater URL not configured", true);
                     return;
                 }
 
-                showToast("Checking for APK updates...");
+                if (!silent) showToast("Checking for APK updates...");
                 try {
                     const response = await fetch(
                         `${APK_UPDATE_MANIFEST_URL}?t=${Date.now()}`,
                         { cache: "no-store" },
                     );
                     if (!response.ok) {
-                        showToast("Update check failed", true);
+                        if (!silent) showToast("Update check failed", true);
                         return;
                     }
 
@@ -5232,7 +5769,7 @@
                     const apkUrl = String(manifest.apkUrl || "").trim();
                     const notes = String(manifest.notes || "").trim();
                     if (!latestVersion || !apkUrl) {
-                        showToast("Invalid update manifest", true);
+                        if (!silent) showToast("Invalid update manifest", true);
                         return;
                     }
 
@@ -5262,7 +5799,7 @@
                     };
 
                     if (compareVersions(latestVersion, currentVersion) <= 0) {
-                        showToast(`App is up to date (v${currentVersion})`);
+                        if (!silent) showToast(`App is up to date (v${currentVersion})`);
                         return;
                     }
 
@@ -5277,7 +5814,7 @@
                     return;
                 } catch (err) {
                     console.error("APK update check failed:", err);
-                    showToast("Could not check APK update", true);
+                    if (!silent) showToast("Could not check APK update", true);
                     return;
                 }
             }
@@ -5285,13 +5822,13 @@
             if ("serviceWorker" in navigator) {
                 const reg = await navigator.serviceWorker.getRegistration();
                 if (reg) {
-                    showToast("Checking for updates...");
+                    if (!silent) showToast("Checking for updates...");
                     await reg.update();
                     if (!reg.installing && !reg.waiting) {
-                        showToast("App is up to date");
+                        if (!silent) showToast("App is up to date");
                     }
                 } else {
-                    showToast("No service worker found", true);
+                    if (!silent) showToast("No service worker found", true);
                 }
             }
         }
@@ -5388,6 +5925,8 @@
                 $("setup-account-number").value = config.accountNumber || "";
             if ($("setup-account-name"))
                 $("setup-account-name").value = config.accountName || "";
+            if ($("setup-security-key"))
+                $("setup-security-key").value = config.setupKey || "";
             if ($("setupOverlay")) $("setupOverlay").style.display = "flex";
             refreshDiagnosticsPanel();
         }
@@ -5408,7 +5947,13 @@
                 bankName: $("setup-bank-name").value,
                 accountNumber: $("setup-account-number").value,
                 accountName: $("setup-account-name").value,
+                setupKey: $("setup-security-key")?.value || "",
             };
+
+            if (isPinWeak(config.adminPin)) {
+                return showToast("Admin PIN is too common. Please pick a stronger code.", true);
+            }
+
             if (!config.name || !config.address) return alert("Fill all fields.");
             localStorage.setItem(bizKey, JSON.stringify(config));
 
@@ -5427,11 +5972,21 @@
             const n = $("newStaffName").value.trim(),
                 p = $("newStaffPin").value.trim();
             if (!n || p.length !== 4) return alert("Invalid PIN.");
+            if (isPinWeak(p)) {
+                return showToast("PIN is too common/easy to guess. Pick another.", true);
+            }
             if (n === "Admin") return alert("Admin account name is reserved.");
             const role = ($("newStaffRole")?.value || "staff") === "admin" ? "admin" : "staff";
             let s = getStaffRecords();
-            if (s.find((x) => x.name === n)) return alert("Exists.");
-            s.push({ name: n, pin: p, role });
+            let target = s.find((x) => x.name.toLowerCase() === n.toLowerCase());
+            if (target) {
+                if (!target.deleted) return alert("Exists.");
+                target.pin = p;
+                target.role = role;
+                target.deleted = false; // Explicitly revived
+            } else {
+                s.push({ name: n, pin: p, role, deleted: false }); // Explicit creation
+            }
             localStorage.setItem(staffKey, JSON.stringify(s));
             $("newStaffName").value = "";
             $("newStaffPin").value = "";
@@ -5445,8 +6000,15 @@
 
         function removeStaffMember(n) {
             if (!requireAdmin("managing staff")) return;
+            const isConfirmed = confirm(`Are you sure you want to completely remove the staff member '${n}'?`);
+            if (!isConfirmed) return;
             let s = getStaffRecords();
-            s = s.filter((x) => x.name !== n);
+            const target = s.find((x) => x.name === n);
+            if (target) {
+                target.deleted = true;
+                // Scramble PIN so they can't log in on old versions of the app
+                target.pin = "DEL_" + Math.random().toString(36).substring(2, 7);
+            }
             localStorage.setItem(staffKey, JSON.stringify(s));
             if (localStorage.getItem(activeStaffKey) === n)
                 localStorage.setItem(activeStaffKey, "Admin");
@@ -5461,7 +6023,7 @@
         function renderStaffManagement() {
             const c = $("staffManageList");
             if (!c) return;
-            const s = getStaffRecords();
+            const s = getActiveStaffRecords();
             c.innerHTML = s
                 .map(
                     (x) =>
@@ -5482,7 +6044,7 @@
         }
 
         function renderAccountSelectorButtons() {
-            const s = getStaffRecords();
+            const s = getActiveStaffRecords();
             let h = `<button class="secondary" onclick="selectForLogin('Admin')" style="height:80px">Admin</button>`;
             h += s
                 .map(
@@ -5558,6 +6120,11 @@
         }
 
         function verifyLogin() {
+            if (checkPinLockout()) {
+                currentPinDraft = "";
+                updatePinDisplay();
+                return;
+            }
             let p = "";
             const isAdminTarget = targetStaff === "Admin";
             if (targetStaff === "Admin") {
@@ -5565,12 +6132,13 @@
                     JSON.parse(localStorage.getItem(bizKey) || "{}").adminPin || "0000";
             } else {
                 p = (
-                    getStaffRecords().find(
+                    getActiveStaffRecords().find(
                         (x) => x.name === targetStaff,
                     ) || {}
                 ).pin;
             }
             if (currentPinDraft === p) {
+                handlePinSuccess();
                 if (isAuthorizingForSettings) {
                     if (isAdminTarget) {
                         isAuthorizingForSettings = false;
@@ -5610,9 +6178,9 @@
                 showToast("Welcome " + targetStaff);
                 calculate();
             } else {
+                handlePinFailure();
                 currentPinDraft = "";
                 updatePinDisplay();
-                showToast("Wrong PIN", true);
             }
         }
 
@@ -5622,6 +6190,9 @@
             if ($("p-invoice-no")) $("p-invoice-no").innerText = "AUTO";
             if ($("sidebarItems")) $("sidebarItems").innerHTML = "";
             if ($("orderStatus")) $("orderStatus").value = "Received";
+            if ($("orderPriority")) $("orderPriority").value = "Normal";
+            if ($("expectedPickup")) $("expectedPickup").value = "";
+            togglePickupDate();
             editingOrderId = null; // Clear edit mode
             carriedBalance = 0;
             currentPromptedCustomer = "";
@@ -5629,6 +6200,14 @@
                 $("p-old-balance-row").style.display = "none";
             addItem();
             calculate();
+        }
+
+        function togglePickupDate() {
+            const priority = $("orderPriority") ? $("orderPriority").value : "Normal";
+            const group = $("expectedPickupGroup");
+            if (group) {
+                group.style.display = priority === "Urgent" ? "block" : "none";
+            }
         }
 
         function quickAdd(n, p) {
@@ -5694,7 +6273,23 @@
             if ($("p-customer"))
                 $("p-customer").innerText = $("customer").value || "---";
             if ($("p-phone")) $("p-phone").innerText = $("phone").value || "---";
-            if ($("p-date")) $("p-date").innerText = $("date").value || "---";
+            if ($("p-date")) $("p-date").innerText = formatDisplayDate($("date").value);
+
+            // Priority display on receipt
+            const curPriority = $("orderPriority") ? $("orderPriority").value : "Normal";
+            if ($("p-priority")) {
+                $("p-priority").innerText = curPriority;
+                $("p-priority").style.color = curPriority === "Urgent" ? "#dc2626" : "#047857";
+                $("p-priority").style.fontWeight = curPriority === "Urgent" ? "900" : "600";
+            }
+            if ($("p-priority-row")) {
+                $("p-priority-row").style.display = curPriority === "Urgent" ? "flex" : "none";
+            }
+            if ($("p-pickup-row")) {
+                const pickupVal = $("expectedPickup") ? $("expectedPickup").value : "";
+                $("p-pickup-row").style.display = (curPriority === "Urgent" && pickupVal) ? "flex" : "none";
+                if ($("p-pickup")) $("p-pickup").innerText = formatDisplayDate(pickupVal);
+            }
             document.querySelectorAll("#sidebarItems .item-row").forEach((r, i) => {
                 const ins = r.querySelectorAll("input");
                 const n = sanitizeItemName(ins[0].value);
@@ -5818,13 +6413,27 @@
 
             const statusEl = $("orderStatus");
             const active = localStorage.getItem(activeStaffKey) || "Admin";
-            const recordId = editingOrderId || Date.now();
+            const selectedDate = $("date").value || formatInputDate(new Date());
+
+            // Generate an ID that reflects the selected date for better chronological consistency
+            let recordId = editingOrderId;
+            if (!recordId) {
+                const baseMs = Date.parse(`${selectedDate}T00:00:00`) || Date.now();
+                const offset = Date.now() % (24 * 60 * 60 * 1000); // Add today's time offset
+                recordId = baseMs + offset;
+            }
+
             const nowMs = Date.now();
+            const displayDate = formatDisplayDate(selectedDate);
+
+            const priority = $("orderPriority") ? $("orderPriority").value : "Normal";
+            const expectedPickup = $("expectedPickup") ? $("expectedPickup").value : "";
+
             const record = {
                 id: recordId,
                 customer: n,
                 phone: normalizePhone($("phone").value),
-                date: $("date").value,
+                date: displayDate, // Use readable date for backward compatibility with Revenue Dashboard
                 total: $("p-total").innerText,
                 items: items,
                 staff: active,
@@ -5832,9 +6441,13 @@
                 paymentStatus: $("paymentStatus").value,
                 amountPaid: $("amountPaid").value || 0,
                 carriedBalance: carriedBalance,
+                priority: priority,
+                expectedPickup: expectedPickup,
                 invoiceNo:
                     (existingRecord && existingRecord.invoiceNo) ||
                     generateInvoiceNo(h, recordId),
+                createdAt: (existingRecord && existingRecord.createdAt) || new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
                 modifiedAtMs: nowMs,
             };
 
@@ -5944,16 +6557,26 @@
             const now = new Date();
             const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
 
-            let overdue = 0, inProgress = 0, ready = 0;
+            let overdue = 0, inProgress = 0, ready = 0, urgentCount = 0;
 
             // Filter out Collected items
             const activeOrders = h.filter(r => (r.status || "Received") !== "Collected");
 
-            list.innerHTML = activeOrders.reverse().map(r => {
+            // Sort: Urgent first, then by date
+            activeOrders.sort((a, b) => {
+                const aUrgent = (a.priority === "Urgent") ? 1 : 0;
+                const bUrgent = (b.priority === "Urgent") ? 1 : 0;
+                if (bUrgent !== aUrgent) return bUrgent - aUrgent;
+                return (b.id || 0) - (a.id || 0);
+            });
+
+            list.innerHTML = activeOrders.map(r => {
                 const status = r.status || "Received";
                 const receivedDate = new Date(r.date);
                 const isOverdue = !isNaN(receivedDate.getTime()) && (now - receivedDate > fiveDaysInMs);
+                const isUrgent = r.priority === "Urgent";
 
+                if (isUrgent) urgentCount++;
                 if (isOverdue) overdue++;
                 else if (status === "Ready") ready++;
                 else inProgress++;
@@ -5961,16 +6584,26 @@
                 const overdueBadge = isOverdue
                     ? `<span class="badge" style="background:#fee2e2; color:#ef4444; border:1px solid #fca5a5; font-size:10px;">OVERDUE</span>`
                     : "";
+                const urgentBadge = isUrgent
+                    ? `<span class="priority-urgent-badge">🔴 URGENT</span>`
+                    : "";
+                const pickupInfo = (isUrgent && r.expectedPickup)
+                    ? `<br><small style="color:#dc2626; font-weight:700;">Pickup: ${formatDisplayDate(r.expectedPickup)}</small>`
+                    : "";
+
+                const borderColor = isUrgent ? '#dc2626' : isOverdue ? '#ef4444' : status === 'Ready' ? '#10b981' : '#f59e0b';
 
                 return `
-                    <div class="history-card" style="cursor: default; border-left: 4px solid ${isOverdue ? '#ef4444' : status === 'Ready' ? '#10b981' : '#f59e0b'}">
+                    <div class="history-card" style="cursor: default; border-left: 4px solid ${borderColor}; ${isUrgent ? 'background:linear-gradient(90deg, #fef2f2, #fff);' : ''}">
                         <div class="meta" style="flex: 1">
-                            <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                                 <strong>${r.customer}</strong>
+                                ${urgentBadge}
                                 ${overdueBadge}
                             </div>
-                            <small>${r.invoiceNo || 'AUTO'} | Received: ${r.date}</small><br>
-                            <small>Items: ${r.items.length}</small>
+                            <small>${r.invoiceNo || 'AUTO'} | Received: ${r.date}</small>
+                            ${pickupInfo}
+                            <br><small>Items: ${r.items.length}</small>
                         </div>
                         <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">
                             <div style="font-weight:700; color:var(--text-main); font-size:13px;">${r.total}</div>
@@ -5993,6 +6626,7 @@
             if ($("wf-overdue-count")) $("wf-overdue-count").innerText = overdue;
             if ($("wf-progress-count")) $("wf-progress-count").innerText = inProgress;
             if ($("wf-ready-count")) $("wf-ready-count").innerText = ready;
+            if ($("wf-urgent-count")) $("wf-urgent-count").innerText = urgentCount;
 
             updateWorkflowBadge();
         }
@@ -6224,8 +6858,8 @@
 
         function updateSummary() {
             const h = JSON.parse(localStorage.getItem(historyKey) || "[]");
-            const now = new Date();
-            const todayStr = now.toLocaleString("en-NG", { dateStyle: "medium" });
+            const todayISO = formatInputDate(new Date());
+            const todayMedium = new Date().toLocaleString("en-NG", { dateStyle: "medium" });
 
             let dailyTotal = 0,
                 pendingCollection = 0,
@@ -6238,8 +6872,11 @@
                 const paidVal = parseFloat(r.amountPaid || 0) || 0;
                 const balance = Math.max(0, totalVal - paidVal);
 
-                // Revenue only counts new sales, not the debt carried forward
-                if (r.date.includes(todayStr)) {
+                // Backward compatible date matching
+                const isToday = r.date && r.date.includes(todayISO);
+                const isTodayMedium = r.date && r.date.includes(todayMedium);
+
+                if (isToday || isTodayMedium) {
                     dailyTotal += totalVal - (parseFloat(r.carriedBalance) || 0);
                 }
 
@@ -6309,10 +6946,17 @@
                 `
                         : "";
 
+                const priorityBadge = (x.priority === "Urgent")
+                    ? `<span class="priority-urgent-badge">🔴 URGENT</span>`
+                    : "";
+
                 d.innerHTML = `
                         <div class="meta" style="flex: 1">
-                            <strong>${x.customer}</strong> | ${x.date}<br>
-                            <small>${orderNo}</small><br>
+                            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                <strong>${x.customer}</strong>
+                                ${priorityBadge}
+                            </div>
+                            <small>${orderNo} | ${x.date}</small><br>
                             <small>Op: ${x.staff || "Admin"}</small>
                         </div>
                         <div style="text-align:right">
@@ -6357,11 +7001,17 @@
             editingOrderId = x.id || null;
             $("customer").value = normalizeCustomerName(x.customer);
             $("phone").value = normalizePhone(x.phone);
-            $("date").value = x.date;
+            if ($("date")) {
+                const dObj = new Date(x.date);
+                $("date").value = isNaN(dObj.getTime()) ? x.date : formatInputDate(dObj);
+            }
             if ($("p-invoice-no")) {
                 $("p-invoice-no").innerText = x.invoiceNo || `INV-${x.id}`;
             }
             if ($("orderStatus")) $("orderStatus").value = x.status || "Received";
+            if ($("orderPriority")) $("orderPriority").value = x.priority || "Normal";
+            if ($("expectedPickup")) $("expectedPickup").value = x.expectedPickup || "";
+            togglePickupDate();
             if ($("paymentStatus"))
                 $("paymentStatus").value = x.paymentStatus || "Not Paid";
             if ($("amountPaid")) $("amountPaid").value = x.amountPaid || 0;
@@ -6897,12 +7547,15 @@
         }
 
         function getAnalyticsHistoryTimeMs(row) {
+            // Priority: Real selected date (ISO format YYYY-MM-DD)
+            const dateStr = String(row?.date || "").trim();
+            if (dateStr) {
+                const dateParsed = Date.parse(`${dateStr}T12:00:00`);
+                if (Number.isFinite(dateParsed)) return dateParsed;
+            }
+            // Fallback: The ID (usually a timestamp)
             const idNum = Number(row?.id);
             if (Number.isFinite(idNum) && idNum > 0) return idNum;
-            const idParsed = Date.parse(String(row?.id || ""));
-            if (Number.isFinite(idParsed)) return idParsed;
-            const dateParsed = Date.parse(String(row?.date || ""));
-            if (Number.isFinite(dateParsed)) return dateParsed;
             return 0;
         }
 

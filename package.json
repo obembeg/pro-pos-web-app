@@ -1,7 +1,7 @@
 {
-    "name": "pro-pos-mobile",
+    "name": "laundry-business-manager",
     "version": "1.0.0",
-    "description": "Smart Business POS - Mobile App",
+    "description": "Laundry Business Manager - Mobile App",
     "main": "index.js",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
@@ -10,7 +10,7 @@
         "cap:copy": "npx cap copy",
         "cap:open:android": "npx cap open android",
         "cap:open:ios": "npx cap open ios",
-        "build": "mkdir -p www && cp index.html manifest.json sw.js icon.png www/ && cp -r downloads/ www/downloads/"
+        "build": "if not exist www mkdir www && copy index.html www\\index.html && copy manifest.json www\\manifest.json && copy sw.js www\\sw.js && copy icon.png www\\icon.png && xcopy /E /I /Y downloads www\\downloads"
     },
     "keywords": [],
     "author": "OG",
