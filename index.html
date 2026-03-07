@@ -1103,6 +1103,111 @@
             transform: rotate(45deg);
         }
 
+        .dashboard-action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 12px 10px;
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            min-width: 70px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .dashboard-action-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+        }
+
+        .dashboard-action-btn:active {
+            transform: translateY(0);
+        }
+
+        .dashboard-action-btn i {
+            width: 22px;
+            height: 22px;
+            opacity: 1;
+        }
+
+        .glass-action-bar {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            width: 100%;
+            padding-bottom: 20px;
+        }
+
+        @media (min-width: 400px) {
+            .glass-action-bar {
+                grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            }
+        }
+
+        .dashboard-action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 12px 10px;
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            min-width: 70px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .dashboard-action-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+        }
+
+        .dashboard-action-btn:active {
+            transform: translateY(0);
+        }
+
+        .dashboard-action-btn i {
+            width: 22px;
+            height: 22px;
+            opacity: 1;
+        }
+
+        .glass-action-bar {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding: 4px 4px 12px 4px;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .glass-action-bar::-webkit-scrollbar {
+            display: none;
+        }
+
         /* Login Overlay */
         .login-overlay {
             position: fixed;
@@ -1639,43 +1744,43 @@
                 <i data-lucide="sparkles" style="width: 24px; height: 24px; color: #fbbf24;"></i> Smart Business
             </h1>
 
-            <div
-                style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 16px; margin-bottom: 8px;">
-                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-                    <button class="settings-btn" onclick="openAnalytics()" title="Business Insights"
-                        style="color: white; opacity: 0.9; background: rgba(255,255,255,0.1); padding: 8px; border-radius: 8px;">
-                        <i data-lucide="bar-chart-3" style="width: 20px; height: 20px;"></i>
+            <div style="border-top: 1px solid rgba(255,255,255,0.15); padding-top: 20px; margin-bottom: 12px;">
+                <div class="glass-action-bar">
+                    <button class="dashboard-action-btn" onclick="openAnalytics()">
+                        <i data-lucide="bar-chart-3" style="color: #60a5fa"></i>
+                        <span>Insights</span>
                     </button>
-                    <button class="settings-btn" onclick="openCustomerDirectory()" title="Customer Directory"
-                        style="color: white; opacity: 0.9; background: rgba(255,255,255,0.1); padding: 8px; border-radius: 8px;">
-                        <i data-lucide="users" style="width: 20px; height: 20px;"></i>
+                    <button class="dashboard-action-btn" onclick="openCustomerDirectory()">
+                        <i data-lucide="users" style="color: #4ade80"></i>
+                        <span>Directory</span>
                     </button>
-                    <button class="settings-btn" onclick="openSimpleExpenseManager()" title="Expense Manager"
-                        style="color: white; opacity: 0.9; background: rgba(255,255,255,0.1); padding: 8px; border-radius: 8px;">
-                        <i data-lucide="wallet" style="width: 20px; height: 20px;"></i>
+                    <button class="dashboard-action-btn" onclick="openSimpleExpenseManager()">
+                        <i data-lucide="wallet" style="color: #fb923c"></i>
+                        <span>Expenses</span>
                     </button>
-                    <button class="settings-btn" onclick="openWorkflow()" title="Workflow / Overdue"
-                        style="color: white; opacity: 0.9; background: rgba(255,255,255,0.1); padding: 8px; border-radius: 8px; position: relative;">
-                        <i data-lucide="list-checks" style="width: 20px; height: 20px;"></i>
+                    <button class="dashboard-action-btn" onclick="openWorkflow()">
+                        <i data-lucide="list-checks" style="color: #c084fc"></i>
+                        <span>Workflow</span>
                         <span id="workflowBadge" class="badge-count"
                             style="display: none; top: -5px; right: -5px;">0</span>
                     </button>
-                    <button class="settings-btn" onclick="openInventory()" title="Inventory Manager"
-                        style="color: white; opacity: 0.9; background: rgba(255,255,255,0.1); padding: 8px; border-radius: 8px; position: relative;">
-                        <i data-lucide="box" style="width: 20px; height: 20px;"></i>
+                    <button class="dashboard-action-btn" onclick="openInventory()">
+                        <i data-lucide="box" style="color: #facc15"></i>
+                        <span>Inventory</span>
                         <span id="inventoryBadge" class="badge-count"
                             style="display: none; background: #f59e0b; top: -5px; right: -5px;">0</span>
                     </button>
+                    <button class="dashboard-action-btn" onclick="showSetup()"
+                        style="background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.1);">
+                        <i data-lucide="settings" style="color: #94a3b8"></i>
+                        <span>Setup</span>
+                    </button>
                 </div>
 
-                <div style="display: flex; gap: 10px;">
+                <div style="display: flex; justify-content: flex-end; padding-top: 10px;">
                     <button class="settings-btn" onclick="logoutToLogin()" title="Log Out"
-                        style="color: #fca5a5; opacity: 1; background: rgba(252,165,165,0.1); padding: 8px; border-radius: 8px;">
-                        <i data-lucide="log-out" style="width: 20px; height: 20px;"></i>
-                    </button>
-                    <button class="settings-btn" onclick="showSetup()" title="Settings"
-                        style="color: white; opacity: 0.9; background: rgba(255,255,255,0.1); padding: 8px; border-radius: 8px;">
-                        <i data-lucide="settings" style="width: 20px; height: 20px;"></i>
+                        style="color: #fca5a5; opacity: 1; background: rgba(252,165,165,0.1); padding: 8px; border-radius: 8px; display: flex; gap: 6px; font-size: 11px; font-weight: 700; width: auto; aspect-ratio: auto; border-radius: 6px; padding: 6px 12px; transform: none;">
+                        <i data-lucide="log-out" style="width: 14px; height: 14px;"></i> Logout
                     </button>
                 </div>
             </div>
@@ -2182,6 +2287,13 @@
             ">
                     <button class="secondary" onclick="exportHistory()" style="font-size: 11px">
                         <i data-lucide="download" style="width: 14px"></i> Export CSV
+                    </button>
+                    <button class="secondary" onclick="archiveOldRecords()"
+                        style="font-size: 11px; color: #4338ca; border-color: #e0e7ff;">
+                        <i data-lucide="archive" style="width: 14px"></i> Archive Old
+                    </button>
+                    <button class="secondary" onclick="viewArchiveSummary()" style="font-size: 11px;">
+                        <i data-lucide="info" style="width: 14px"></i> View Archive
                     </button>
                     <button class="secondary" onclick="forceUpdate()" style="font-size: 11px;">
                         <i data-lucide="refresh-cw" style="width: 14px"></i> Check for Updates
@@ -3082,12 +3194,22 @@
             return String(value || "").trim();
         }
 
+        function escapeHTML(str) {
+            if (!str) return "";
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
         function sanitizeItemName(value) {
             const collapsed = String(value || "").replace(/\s+/g, " ").trim();
             if (!collapsed) return "";
             const clipped = collapsed.slice(0, 80);
             const looksLikeCode =
-                /(?:function\s+\w+|\bconst\b|\blet\b|\bvar\b|=>|document\.|window\.|\$\(.*\)|showToast\(|openAnalytics\(|localStorage)/i.test(
+                /(?:\bfunction\b\s+\w+|\bconst\b|\blet\b|\bvar\b|=>|document\.|window\.|[$]\(.*?\)|showToast\(|openAnalytics\(|localStorage)/i.test(
                     clipped,
                 );
             return looksLikeCode ? "Item" : clipped;
@@ -3170,6 +3292,7 @@
         const simpleExpenseKey = "pro_pos_simple_expenses";
         const inventoryKey = "pro_pos_inventory";
         const historyTombstonesKey = "pro_pos_history_tombstones";
+        const historyArchiveKey = "pro_pos_history_archive";
         const simpleExpenseTombstonesKey = "pro_pos_simple_expense_tombstones";
         const inventoryTombstonesKey = "pro_pos_inventory_tombstones";
         const storeCachePrefixKey = "pro_pos_store_cache_";
@@ -4644,8 +4767,8 @@
                     return `
                         <div class="history-card" style="cursor: default;">
                             <div class="meta" style="flex: 1;">
-                                <strong>${r.customer || "Unknown Customer"}</strong><br>
-                                <small>${r.date || "-"} | Invoice: ${r.invoiceNo || "AUTO"} | Staff: ${r.staff || "Admin"}</small><br>
+                                <strong>${escapeHTML(r.customer || "Unknown Customer")}</strong><br>
+                                <small>${r.date || "-"} | Invoice: ${r.invoiceNo || "AUTO"} | Staff: ${escapeHTML(r.staff || "Admin")}</small><br>
                                 <small>Status: ${r.status || "Received"} | Payment: ${r.paymentStatus || "Not Paid"}</small>
                             </div>
                             <div style="text-align: right;">
@@ -4815,6 +4938,55 @@
             markCleanupWizardDone(storeId);
             renderCleanupWizardSummary();
             showToast("Cleanup complete: rebuilt from cloud");
+        }
+
+        // --- Data Archiving System for handling 5MB storage wall ---
+        function archiveOldRecords() {
+            if (!requireAdmin("archiving records")) return;
+            const h = JSON.parse(localStorage.getItem(historyKey) || "[]");
+            if (!h.length) return showToast("No records to process.", true);
+
+            const sixMonthsAgo = Date.now() - (180 * 24 * 60 * 60 * 1000);
+            const toKeep = [];
+            const toArchive = [];
+
+            h.forEach(rec => {
+                const ageMs = rec.modifiedAtMs || rec.id;
+                // Archive logic: Older than 6 months AND either Collected or Paid
+                if (ageMs < sixMonthsAgo && (rec.status === 'Collected' || rec.paymentStatus === 'Paid')) {
+                    toArchive.push(rec);
+                } else {
+                    toKeep.push(rec);
+                }
+            });
+
+            if (toArchive.length === 0) {
+                return alert("No eligible records found to archive.\n\nCriteria:\n1. Over 6 months old\n2. Order is Collected OR Paid");
+            }
+
+            if (!confirm(`Found ${toArchive.length} old closed records.\n\nMoving them to ARCHIVE will keep your main app fast and prevent storage from getting full.\n\nProceed?`)) return;
+
+            try {
+                const existingArchive = JSON.parse(localStorage.getItem(historyArchiveKey) || "[]");
+                const newArchive = existingArchive.concat(toArchive);
+
+                // Save archive first
+                localStorage.setItem(historyArchiveKey, JSON.stringify(newArchive));
+                // Update main history
+                localStorage.setItem(historyKey, JSON.stringify(toKeep));
+
+                renderHistory();
+                updateSummary();
+                showToast(`Successfully archived ${toArchive.length} records.`);
+            } catch (e) {
+                console.error("Archive failed:", e);
+                showToast("Storage full! Try Cloud Rebuild or manual CSV export and data clear.", true);
+            }
+        }
+
+        function viewArchiveSummary() {
+            const arch = JSON.parse(localStorage.getItem(historyArchiveKey) || "[]");
+            alert(`Archived Records: ${arch.length}\nTo restore or view these, use "Export CSV" while in the archive view (experimental) or check your Cloud database.`);
         }
 
         function cleanupStartFreshLocal() {
@@ -5162,13 +5334,6 @@
             const list = $("simpleExpenseList");
             const summary = $("simpleExpenseSummary");
             if (!list || !summary) return;
-            const esc = (v) =>
-                String(v || "")
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;")
-                    .replace(/"/g, "&quot;")
-                    .replace(/'/g, "&#39;");
 
             const expenses = getSimpleExpenses().sort((a, b) => {
                 const cmp = String(b.date || "").localeCompare(String(a.date || ""));
@@ -5202,8 +5367,8 @@
                     (x) => `
                         <div class="history-card" style="cursor: default;">
                             <div class="meta" style="flex: 1;">
-                                <strong>${esc(x.title || "Expense")}</strong><br>
-                                <small>${esc(x.date || "-")} | ${esc(x.category || "Other")}${x.note ? ` | ${esc(x.note)}` : ""}</small>
+                                <strong>${escapeHTML(x.title || "Expense")}</strong><br>
+                                <small>${escapeHTML(x.date || "-")} | ${escapeHTML(x.category || "Other")}${x.note ? ` | ${escapeHTML(x.note)}` : ""}</small>
                             </div>
                             <div style="text-align: right;">
                                 <div class="total">₦${Number(x.amount || 0).toLocaleString()}</div>
@@ -5871,7 +6036,7 @@
             }
             if ($("sidebar-biz-name"))
                 $("sidebar-biz-name").innerHTML =
-                    `<i data-lucide="sparkles"></i> ${config.name}`;
+                    `<i data-lucide="sparkles"></i> ${escapeHTML(config.name)}`;
             if ($("p-biz-name"))
                 $("p-biz-name").innerText = config.name.toUpperCase();
             if ($("p-biz-address")) $("p-biz-address").innerText = config.address;
@@ -6813,10 +6978,10 @@
                     <div style="background: ${bg}; border: 1px solid var(--border); border-radius: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center;">
                         <div style="flex: 1;">
                             <div style="display:flex; align-items:center; gap:8px;">
-                                <strong style="font-size:14px;">${item.name}</strong>
+                                <strong style="font-size:14px;">${escapeHTML(item.name)}</strong>
                                 ${isLow ? `<span style="font-size:9px; background:${color}; color:white; padding:2px 6px; border-radius:10px;">${item.stock <= 0 ? 'OUT' : 'LOW'}</span>` : ''}
                             </div>
-                            <small style="color:var(--text-muted);">Current: <span style="font-weight:700; color:${color}">${item.stock}</span> ${item.unit}</small>
+                            <small style="color:var(--text-muted);">Current: <span style="font-weight:700; color:${color}">${item.stock}</span> ${escapeHTML(item.unit)}</small>
                         </div>
                         <div style="display:flex; gap:6px;">
                             <button class="btn-icon" onclick="openInventoryAction(${item.id}, 'usage')" title="Record Usage" style="color:#ef4444; background:#fee2e2;">
@@ -6953,11 +7118,11 @@
                 d.innerHTML = `
                         <div class="meta" style="flex: 1">
                             <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                                <strong>${x.customer}</strong>
+                                <strong>${escapeHTML(x.customer)}</strong>
                                 ${priorityBadge}
                             </div>
                             <small>${orderNo} | ${x.date}</small><br>
-                            <small>Op: ${x.staff || "Admin"}</small>
+                            <small>Op: ${escapeHTML(x.staff || "Admin")}</small>
                         </div>
                         <div style="text-align:right">
                             <div class="total">${x.total}</div>
@@ -7265,20 +7430,30 @@
                 datalist.innerHTML = Object.values(customerMap)
                     .sort((a, b) => a.name.localeCompare(b.name))
                     .map((entry) => {
-                        const label = entry.phone
-                            ? `${entry.name} (${entry.phone})`
-                            : entry.name;
-                        return `<option value="${entry.name}">${label}</option>`;
+                        const nameEsc = escapeHTML(entry.name);
+                        const labelEsc = entry.phone
+                            ? `${nameEsc} (${escapeHTML(entry.phone)})`
+                            : nameEsc;
+                        return `<option value="${nameEsc}">${labelEsc}</option>`;
                     })
                     .join("");
             }
         }
+
+
         async function shareWhatsApp() {
             const config = JSON.parse(localStorage.getItem(bizKey)) || { name: "Business" };
             const customerName = $("customer").value || "Customer";
             const phone = $("phone").value || "";
-            const total = $("p-total")?.innerText || "0.00";
-            const msg = `Hello ${customerName}, here is your receipt from ${config.name}. Total: ${total}`;
+            const total = $("p-total")?.innerText || "₦0.00";
+            const balance = $("p-due")?.innerText || "₦0.00";
+            const balanceNum = parseFloat(balance.replace(/[₦,]/g, "")) || 0;
+            const payStatus = $("paymentStatus")?.value || "Not Paid";
+
+            let msg = `Hello ${customerName}, here is your receipt from ${config.name}. Total: ${total}. Status: ${payStatus}.`;
+            if (balanceNum > 0) {
+                msg += ` Remaining Balance: ${balance}. Please pay on collection.`;
+            }
 
             if (!window.html2canvas) return alert("Sharing library not loaded.");
 
@@ -7547,13 +7722,21 @@
         }
 
         function getAnalyticsHistoryTimeMs(row) {
-            // Priority: Real selected date (ISO format YYYY-MM-DD)
-            const dateStr = String(row?.date || "").trim();
-            if (dateStr) {
-                const dateParsed = Date.parse(`${dateStr}T12:00:00`);
+            // Priority 1: ISO Date (YYYY-MM-DD) which is now stored for new records
+            if (row?.dateISO && String(row.dateISO).match(/^\d{4}-\d{2}-\d{2}$/)) {
+                const dateParsed = Date.parse(`${row.dateISO}T12:00:00`);
                 if (Number.isFinite(dateParsed)) return dateParsed;
             }
-            // Fallback: The ID (usually a timestamp)
+
+            // Priority 2: Fallback for older records - attempt to parse the locale string
+            const dateStr = String(row?.date || "").trim();
+            if (dateStr && dateStr !== "---") {
+                // Remove potential bad suffixes like "T12:00:00" before parsing a locale string
+                const d = new Date(dateStr);
+                if (!isNaN(d.getTime())) return d.getTime();
+            }
+
+            // Priority 3: Use the record ID (which is usually a timestamp)
             const idNum = Number(row?.id);
             if (Number.isFinite(idNum) && idNum > 0) return idNum;
             return 0;
@@ -7924,8 +8107,8 @@
                         (c) => `
                 <div class="history-card" onclick="viewCustomerDetails('${c.key.replace(/'/g, "\\'")}')">
                     <div class="meta">
-                        <strong>${c.name}</strong><br>
-                        <small>${c.phone}</small>
+                        <strong>${escapeHTML(c.name)}</strong><br>
+                        <small>${escapeHTML(c.phone)}</small>
                     </div>
                     <div style="text-align: right;">
                         <div class="total">₦${c.totalSpent.toLocaleString()}</div>
@@ -7974,8 +8157,8 @@
             const detailContent = $("customerDetailContent");
             detailContent.innerHTML = `
                 <div style="margin-bottom: 20px;">
-                    <h3 style="margin: 0; font-size: 18px;">${displayName}</h3>
-                    <div style="color: var(--text-muted); font-size: 14px; margin-bottom: 12px;">${phone}</div>
+                    <h3 style="margin: 0; font-size: 18px;">${escapeHTML(displayName)}</h3>
+                    <div style="color: var(--text-muted); font-size: 14px; margin-bottom: 12px;">${escapeHTML(phone)}</div>
                     <div class="customer-stats-grid" style="display: flex; gap: 12px;">
                         <div class="analytics-grid-card" style="flex: 1; padding: 10px;">
                             <div class="lbl">Lifetime Value</div>
@@ -8009,8 +8192,8 @@
                         (h) => `
                         <div class="history-card" style="cursor: default;">
                             <div class="meta">
-                                <strong>${h.date}</strong><br>
-                                <small>${h.items.map((i) => i.name).join(", ")}</small>
+                                <strong>${escapeHTML(h.date)}</strong><br>
+                                <small>${h.items.map((i) => escapeHTML(i.name)).join(", ")}</small>
                             </div>
                         <div style="text-align: right;">
                             <div class="total">${h.isPaymentOnly ? "- ₦" + parseFloat(h.amountPaid).toLocaleString() : h.total}</div>
