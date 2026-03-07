@@ -3649,91 +3649,90 @@
                 this.lastLocalWriteAt = writeAt;
 
                 try {
-                    // For performance, we'll try a single SET write first if we can, 
-                    // or fetch remote only when absolutely necessary for merging.
-                    const remoteDoc = await db.collection("stores").doc(id).get();
-                    const remoteData = remoteDoc.exists ? (remoteDoc.data() || {}) : {};
+                    const docRef = db.collection("stores").doc(id);
 
-                    const mergedHistoryTombstones = pruneTombstones(
-                        mergeTombstoneMaps(localHistoryTombstones, getStoredMapFromAny(remoteData.historyTombstones)),
-                    );
-                    const mergedExpenseTombstones = pruneTombstones(
-                        mergeTombstoneMaps(localExpenseTombstones, getStoredMapFromAny(remoteData.simpleExpenseTombstones)),
-                    );
-                    const mergedInventoryTombstones = pruneTombstones(
-                        mergeTombstoneMaps(getStoredMap(inventoryTombstonesKey), getStoredMapFromAny(remoteData.inventoryTombstones)),
-                    );
+                    // Use a transaction for the Read-Merge-Write cycle to prevent multi-device race conditions.
+                    const result = await db.runTransaction(async (transaction) => {
+                        const remoteDoc = await transaction.get(docRef);
+                        const remoteData = remoteDoc.exists ? (remoteDoc.data() || {}) : {};
 
-                    const mergedHistory = applyTombstones(
-                        mergeRecordsById(localHistory, Array.isArray(remoteData.history) ? remoteData.history : []),
-                        mergedHistoryTombstones,
-                    );
-                    const mergedSimpleExpenses = applyTombstones(
-                        mergeRecordsById(localSimpleExpenses, Array.isArray(remoteData.simpleExpenses) ? remoteData.simpleExpenses : []),
-                        mergedExpenseTombstones,
-                    );
-                    const mergedInventory = applyTombstones(
-                        mergeRecordsById(JSON.parse(localStorage.getItem(inventoryKey) || "[]"), Array.isArray(remoteData.inventory) ? remoteData.inventory : []),
-                        mergedInventoryTombstones,
-                    );
-                    const mergedStaff = mergeStaffByName(localStaff, Array.isArray(remoteData.staff) ? remoteData.staff : []);
-                    const mergedConfig = {
-                        ...(remoteData.config || {}),
-                        ...config,
-                    };
+                        const mergedHistoryTombstones = pruneTombstones(
+                            mergeTombstoneMaps(localHistoryTombstones, getStoredMapFromAny(remoteData.historyTombstones)),
+                        );
+                        const mergedExpenseTombstones = pruneTombstones(
+                            mergeTombstoneMaps(localExpenseTombstones, getStoredMapFromAny(remoteData.simpleExpenseTombstones)),
+                        );
+                        const mergedInventoryTombstones = pruneTombstones(
+                            mergeTombstoneMaps(getStoredMap(inventoryTombstonesKey), getStoredMapFromAny(remoteData.inventoryTombstones)),
+                        );
 
-                    localStorage.setItem(historyKey, JSON.stringify(mergedHistory));
-                    localStorage.setItem(simpleExpenseKey, JSON.stringify(mergedSimpleExpenses));
-                    localStorage.setItem(inventoryKey, JSON.stringify(mergedInventory));
-                    localStorage.setItem(staffKey, JSON.stringify(mergedStaff));
-                    localStorage.setItem(bizKey, JSON.stringify(mergedConfig));
-                    setStoredMap(historyTombstonesKey, mergedHistoryTombstones);
-                    setStoredMap(simpleExpenseTombstonesKey, mergedExpenseTombstones);
-                    setStoredMap(inventoryTombstonesKey, mergedInventoryTombstones);
+                        const mergedHistory = applyTombstones(
+                            mergeRecordsById(localHistory, Array.isArray(remoteData.history) ? remoteData.history : []),
+                            mergedHistoryTombstones,
+                        );
+                        const mergedSimpleExpenses = applyTombstones(
+                            mergeRecordsById(localSimpleExpenses, Array.isArray(remoteData.simpleExpenses) ? remoteData.simpleExpenses : []),
+                            mergedExpenseTombstones,
+                        );
+                        const mergedInventory = applyTombstones(
+                            mergeRecordsById(JSON.parse(localStorage.getItem(inventoryKey) || "[]"), Array.isArray(remoteData.inventory) ? remoteData.inventory : []),
+                            mergedInventoryTombstones,
+                        );
+                        const mergedStaff = mergeStaffByName(localStaff, Array.isArray(remoteData.staff) ? remoteData.staff : []);
+                        const mergedConfig = {
+                            ...(remoteData.config || {}),
+                            ...config,
+                        };
 
-                    // Push to Cloud in background
-                    db.collection("stores").doc(id).set({
-                        storeName: mergedConfig.name || "Unnamed Store",
-                        config: mergedConfig,
-                        staff: mergedStaff,
-                        history: mergedHistory,
-                        simpleExpenses: mergedSimpleExpenses,
-                        inventory: mergedInventory,
-                        historyTombstones: mergedHistoryTombstones,
-                        simpleExpenseTombstones: mergedExpenseTombstones,
-                        inventoryTombstones: mergedInventoryTombstones,
-                        updatedAtMs: writeAt,
-                        updatedBy: this.deviceId,
-                        lastSync: firebase.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true }).then(() => {
+                        // Update local cache with transaction results
+                        localStorage.setItem(historyKey, JSON.stringify(mergedHistory));
+                        localStorage.setItem(simpleExpenseKey, JSON.stringify(mergedSimpleExpenses));
+                        localStorage.setItem(inventoryKey, JSON.stringify(mergedInventory));
+                        localStorage.setItem(staffKey, JSON.stringify(mergedStaff));
+                        localStorage.setItem(bizKey, JSON.stringify(mergedConfig));
+                        setStoredMap(historyTombstonesKey, mergedHistoryTombstones);
+                        setStoredMap(simpleExpenseTombstonesKey, mergedExpenseTombstones);
+                        setStoredMap(inventoryTombstonesKey, mergedInventoryTombstones);
+
+                        transaction.set(docRef, {
+                            storeName: mergedConfig.name || "Unnamed Store",
+                            config: mergedConfig,
+                            staff: mergedStaff,
+                            history: mergedHistory,
+                            simpleExpenses: mergedSimpleExpenses,
+                            inventory: mergedInventory,
+                            historyTombstones: mergedHistoryTombstones,
+                            simpleExpenseTombstones: mergedExpenseTombstones,
+                            inventoryTombstones: mergedInventoryTombstones,
+                            updatedAtMs: writeAt,
+                            updatedBy: this.deviceId,
+                            lastSync: firebase.firestore.FieldValue.serverTimestamp()
+                        }, { merge: true });
+
+                        return true;
+                    });
+
+                    if (result) {
                         localStorage.removeItem(pendingSyncKey);
                         localStorage.setItem(lastCloudSyncAtKey, String(Date.now()));
                         updateSyncStatusBadge();
-                        if (!isSilent) console.log("Cloud Push: Complete");
-                    }).catch((error) => {
-                        console.error("Cloud Push secretly failed!", error);
-                        // REMOVE the pending lock so the UI doesn't visually freeze forever
-                        localStorage.removeItem(pendingSyncKey);
-                        updateSyncStatusBadge();
-
-                        // Alert the user so they know something failed (Quota, Document too big, etc)
-                        if (!isSilent) {
-                            const detail = String(error.message || "");
-                            if (detail.includes("too large")) {
-                                showToast("Store data exceeds 1MB cloud limit. Prune history.", true);
-                            } else if (detail.includes("permission-denied")) {
-                                showToast("Sync denied: Device not authorized.", true);
-                            } else {
-                                showToast("Sync failed: " + (detail || "Check internet"), true);
-                            }
-                        }
-                    });
-
+                        if (!isSilent) console.log("Cloud Push: Complete (Atomic)");
+                    }
                     return true;
-                } catch (e) {
-                    if (!isSilent) console.error("Cloud Sync Error:", e);
+                } catch (error) {
+                    this.isSyncing = false;
                     localStorage.removeItem(pendingSyncKey);
                     updateSyncStatusBadge();
+
+                    const detail = String(error.message || "");
+                    if (detail.includes("too large")) {
+                        showToast("Data too large for cloud! Auto-archiving oldest records...", true);
+                        archiveOldRecords({ silent: true, forceCount: 100 });
+                    } else if (detail.includes("permission-denied")) {
+                        if (!isSilent) showToast("Sync denied: Device not authorized.", true);
+                    } else {
+                        if (!isSilent) console.error("Cloud Sync Error:", error);
+                    }
                     return false;
                 } finally {
                     this.isSyncing = false;
@@ -3769,19 +3768,28 @@
                             mergeTombstoneMaps(getStoredMap(inventoryTombstonesKey), remoteInventoryTombstones),
                         );
 
-                        if (data.config) localStorage.setItem(bizKey, JSON.stringify(data.config));
+                        const localHistory = JSON.parse(localStorage.getItem(historyKey) || "[]");
+                        const localExpenses = JSON.parse(localStorage.getItem(simpleExpenseKey) || "[]");
+                        const localInventory = JSON.parse(localStorage.getItem(inventoryKey) || "[]");
+                        const localStaff = JSON.parse(localStorage.getItem(staffKey) || "[]");
+
+                        if (data.config) {
+                            const localConfig = JSON.parse(localStorage.getItem(bizKey) || "{}");
+                            localStorage.setItem(bizKey, JSON.stringify({ ...data.config, ...localConfig }));
+                        }
+
                         localStorage.setItem(
                             historyKey,
-                            JSON.stringify(applyTombstones(remoteHistory, mergedHistoryTombstones)),
+                            JSON.stringify(applyTombstones(mergeRecordsById(localHistory, remoteHistory), mergedHistoryTombstones)),
                         );
-                        localStorage.setItem(staffKey, JSON.stringify(Array.isArray(data.staff) ? data.staff : []));
+                        localStorage.setItem(staffKey, JSON.stringify(mergeStaffByName(localStaff, Array.isArray(data.staff) ? data.staff : [])));
                         localStorage.setItem(
                             simpleExpenseKey,
-                            JSON.stringify(applyTombstones(remoteExpenses, mergedExpenseTombstones)),
+                            JSON.stringify(applyTombstones(mergeRecordsById(localExpenses, remoteExpenses), mergedExpenseTombstones)),
                         );
                         localStorage.setItem(
                             inventoryKey,
-                            JSON.stringify(applyTombstones(remoteInventory, mergedInventoryTombstones)),
+                            JSON.stringify(applyTombstones(mergeRecordsById(localInventory, remoteInventory), mergedInventoryTombstones)),
                         );
                         setStoredMap(historyTombstonesKey, mergedHistoryTombstones);
                         setStoredMap(simpleExpenseTombstonesKey, mergedExpenseTombstones);
@@ -3866,19 +3874,28 @@
                                 mergeTombstoneMaps(getStoredMap(inventoryTombstonesKey), remoteInventoryTombstones),
                             );
 
-                            if (data.config) localStorage.setItem(bizKey, JSON.stringify(data.config));
+                            const localHistory = JSON.parse(localStorage.getItem(historyKey) || "[]");
+                            const localExpenses = JSON.parse(localStorage.getItem(simpleExpenseKey) || "[]");
+                            const localInventory = JSON.parse(localStorage.getItem(inventoryKey) || "[]");
+                            const localStaff = JSON.parse(localStorage.getItem(staffKey) || "[]");
+
+                            if (data.config) {
+                                const localConfig = JSON.parse(localStorage.getItem(bizKey) || "{}");
+                                localStorage.setItem(bizKey, JSON.stringify({ ...data.config, ...localConfig }));
+                            }
+
                             localStorage.setItem(
                                 historyKey,
-                                JSON.stringify(applyTombstones(remoteHistory, mergedHistoryTombstones)),
+                                JSON.stringify(applyTombstones(mergeRecordsById(localHistory, remoteHistory), mergedHistoryTombstones)),
                             );
-                            localStorage.setItem(staffKey, JSON.stringify(Array.isArray(data.staff) ? data.staff : []));
+                            localStorage.setItem(staffKey, JSON.stringify(mergeStaffByName(localStaff, Array.isArray(data.staff) ? data.staff : [])));
                             localStorage.setItem(
                                 simpleExpenseKey,
-                                JSON.stringify(applyTombstones(remoteExpenses, mergedExpenseTombstones)),
+                                JSON.stringify(applyTombstones(mergeRecordsById(localExpenses, remoteExpenses), mergedExpenseTombstones)),
                             );
                             localStorage.setItem(
                                 inventoryKey,
-                                JSON.stringify(applyTombstones(remoteInventory, mergedInventoryTombstones)),
+                                JSON.stringify(applyTombstones(mergeRecordsById(localInventory, remoteInventory), mergedInventoryTombstones)),
                             );
                             setStoredMap(historyTombstonesKey, mergedHistoryTombstones);
                             setStoredMap(simpleExpenseTombstonesKey, mergedExpenseTombstones);
@@ -4446,7 +4463,7 @@
                 `Realtime Listener: ${realtime ? "Connected" : "Idle"}`,
                 `History Count: ${hCount}`,
                 `Expense Count: ${eCount}`,
-                `Total Data Size: ${sizeKb}KB${sizeLimitWarning}`,
+                `Total Data Size: ${sizeKb}KB${sizeKb > 700 ? " (Danger - Cloud Limit Near)" : ""}`,
             ].join("\n");
         }
 
@@ -4941,19 +4958,27 @@
         }
 
         // --- Data Archiving System for handling 5MB storage wall ---
-        function archiveOldRecords() {
-            if (!requireAdmin("archiving records")) return;
-            const h = JSON.parse(localStorage.getItem(historyKey) || "[]");
-            if (!h.length) return showToast("No records to process.", true);
+        function archiveOldRecords(options = {}) {
+            const isSilent = !!options.silent;
+            const forceCount = Number(options.forceCount || 0);
 
-            const sixMonthsAgo = Date.now() - (180 * 24 * 60 * 60 * 1000);
+            if (!isSilent && !requireAdmin("archiving records")) return;
+            const h = JSON.parse(localStorage.getItem(historyKey) || "[]");
+            if (!h.length) {
+                if (!isSilent) showToast("No records to process.", true);
+                return;
+            }
+
+            const archiveThreshold = Date.now() - (options.days ? options.days : 90) * 24 * 60 * 60 * 1000;
             const toKeep = [];
             const toArchive = [];
 
-            h.forEach(rec => {
+            h.forEach((rec, idx) => {
                 const ageMs = rec.modifiedAtMs || rec.id;
-                // Archive logic: Older than 6 months AND either Collected or Paid
-                if (ageMs < sixMonthsAgo && (rec.status === 'Collected' || rec.paymentStatus === 'Paid')) {
+                const isOld = ageMs < archiveThreshold;
+                const isClosed = rec.status === 'Collected' || rec.paymentStatus === 'Paid';
+
+                if ((isOld && isClosed) || (forceCount > 0 && h.length - idx <= forceCount)) {
                     toArchive.push(rec);
                 } else {
                     toKeep.push(rec);
@@ -4961,26 +4986,31 @@
             });
 
             if (toArchive.length === 0) {
-                return alert("No eligible records found to archive.\n\nCriteria:\n1. Over 6 months old\n2. Order is Collected OR Paid");
+                if (!isSilent) alert("No eligible records found to archive.\n\nCriteria:\n1. Over 3 months old\n2. Order is Collected OR Paid");
+                return;
             }
 
-            if (!confirm(`Found ${toArchive.length} old closed records.\n\nMoving them to ARCHIVE will keep your main app fast and prevent storage from getting full.\n\nProceed?`)) return;
+            if (!isSilent && !confirm(`Found ${toArchive.length} old closed records.\n\nMoving them to ARCHIVE will keep your main app fast and prevent storage from getting full.\n\nProceed?`)) return;
 
             try {
                 const existingArchive = JSON.parse(localStorage.getItem(historyArchiveKey) || "[]");
                 const newArchive = existingArchive.concat(toArchive);
 
-                // Save archive first
                 localStorage.setItem(historyArchiveKey, JSON.stringify(newArchive));
-                // Update main history
+
+                toArchive.forEach(item => {
+                    markDeleted(historyTombstonesKey, item.id);
+                });
+
                 localStorage.setItem(historyKey, JSON.stringify(toKeep));
 
                 renderHistory();
                 updateSummary();
-                showToast(`Successfully archived ${toArchive.length} records.`);
+                if (!isSilent) showToast(`Successfully archived ${toArchive.length} records.`);
+                requestCloudSync("archive");
             } catch (e) {
                 console.error("Archive failed:", e);
-                showToast("Storage full! Try Cloud Rebuild or manual CSV export and data clear.", true);
+                if (!isSilent) showToast("Archive failed. Storage might be full.", true);
             }
         }
 
