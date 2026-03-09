@@ -1,6 +1,6 @@
 {
-    "latestVersion": "1.0.3",
-    "versionCode": 4,
+    "latestVersion": "1.0.4",
+    "versionCode": 5,
     "apkUrl": "https://smartlaundrymanager.vercel.app/downloads/Laundry_Business_Manager.apk",
-    "notes": "Improved security and cloud Sync"
+    "notes": "Improved image quality of invoices"
 }

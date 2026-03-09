@@ -7509,7 +7509,7 @@
             try {
                 showToast("Generating image...");
                 const canvas = await html2canvas($("receipt"), {
-                    scale: 2.5,
+                    scale: 4,
                     backgroundColor: "#ffffff",
                     useCORS: true,
                     logging: false,
@@ -7602,7 +7602,7 @@
                 // Share-Print Fallback for Native
                 try {
                     showToast("Preparing system print...");
-                    const canvas = await html2canvas($("receipt"), { scale: 2.5, backgroundColor: "#ffffff" });
+                    const canvas = await html2canvas($("receipt"), { scale: 4, backgroundColor: "#ffffff" });
                     const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
                     const base64 = await new Promise(r => {
                         const rd = new FileReader();
@@ -7623,7 +7623,7 @@
 
                 // Generate high-resolution image of the receipt
                 const canvas = await html2canvas($("receipt"), {
-                    scale: 3,
+                    scale: 4,
                     backgroundColor: "#ffffff",
                     useCORS: true,
                     logging: false
@@ -7899,10 +7899,12 @@
                     return d.toDateString() === now.toDateString();
                 }
                 if (period === "week") {
+                    // Sunday = 0, so subtract getDay() to get to Sunday
                     const start = new Date(now);
+                    start.setDate(start.getDate() - start.getDay()); // Go back to Sunday
                     start.setHours(0, 0, 0, 0);
-                    start.setDate(start.getDate() - 6);
-                    const end = new Date(now);
+                    const end = new Date(start);
+                    end.setDate(end.getDate() + 6); // Saturday
                     end.setHours(23, 59, 59, 999);
                     return d >= start && d <= end;
                 }
